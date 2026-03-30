@@ -94,3 +94,38 @@ export const generateHealthOverview = async (records, language = 'English') => {
   }
 };
 
+export const analyzeSymptoms = async (symptoms, language = 'English') => {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    const prompt = `
+      You are a specialized medical AI assistant. Analyze the following patient symptoms.
+      Symptoms: "${symptoms}"
+      
+      Please provide an assessment in ${language}.
+      If the language is Hindi or Kannada, ensure the medical terms are explained simply.
+      
+      Format the response strictly as a JSON object with the following structure:
+      {
+        "predicted_disease": "Name of the most likely disease or condition based on symptoms",
+        "doctor_suggestion": "Specialist to consult (e.g., General Physician, Cardiologist)",
+        "care_type": "Home Care or Hospital Visit",
+        "precautions": "A string containing basic precautions or steps to take",
+        "risk_level": "Low, Medium, or High",
+        "advice": "A short, basic advice related to the condition",
+        "disclaimer": "This is an AI-generated assessment for informational purposes only. Please consult a doctor for official diagnosis."
+      }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.error('Error in analyzeSymptoms:', error);
+    throw new Error('Failed to analyze symptoms');
+  }
+};
+

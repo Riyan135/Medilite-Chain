@@ -15,10 +15,50 @@ const QRProfile = () => {
   }, [user?.id]);
 
   const generateToken = () => {
-    // In a production app, this would fetch a signed token from the server
-    // For now, we use a structured string that the doctor scanner can parse
-    const newToken = `medilite-access-token-${user.id}-${Date.now()}`;
-    setToken(newToken);
+    // Generate a direct link to the patient's dashboard that can be scanned
+    const qrUrl = `${window.location.origin}/doctor/patient/${user.id}`;
+    setToken(qrUrl);
+  };
+
+  const downloadQR = () => {
+    const svg = document.getElementById('qr-code-svg');
+    if (!svg) {
+      toast.error('QR code not ready yet');
+      return;
+    }
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      const pngFile = canvas.toDataURL('image/png');
+      const downloadLink = document.createElement('a');
+      downloadLink.download = `medilite-qr-profile.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
+
+  const shareQR = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'My Medical QR Code',
+          text: 'Scan this QR code to access my medical profile on MediLite.',
+          url: token,
+        });
+      } catch (error) {
+        console.error('Error sharing', error);
+      }
+    } else {
+      toast.error('Sharing is not supported on this device/browser');
+    }
   };
 
   return (
@@ -44,6 +84,7 @@ const QRProfile = () => {
             <div className="p-4 bg-primary/5 rounded-3xl mb-8">
               {token ? (
                 <QRCodeSVG 
+                  id="qr-code-svg"
                   value={token} 
                   size={240}
                   level="H"
@@ -57,11 +98,11 @@ const QRProfile = () => {
             </div>
             
             <div className="flex space-x-4 w-full">
-              <button className="flex-1 flex items-center justify-center px-4 py-3 bg-slate-50 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors">
+              <button onClick={downloadQR} className="flex-1 flex items-center justify-center px-4 py-3 bg-slate-50 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors">
                 <Download className="w-5 h-5 mr-2" />
                 Download
               </button>
-              <button className="flex-1 flex items-center justify-center px-4 py-3 bg-slate-50 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors">
+              <button onClick={shareQR} className="flex-1 flex items-center justify-center px-4 py-3 bg-slate-50 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors">
                 <Share2 className="w-5 h-5 mr-2" />
                 Share
               </button>
@@ -75,12 +116,12 @@ const QRProfile = () => {
                 <h3 className="text-xl font-bold">Secure Access Control</h3>
               </div>
               <p className="text-indigo-100 text-sm leading-relaxed mb-6">
-                This QR code contains a temporary access token. When scanned by an authorized MediLite doctor:
+                This QR code contains a direct link to your medical profile. When scanned by an authorized MediLite doctor:
               </p>
               <ul className="space-y-3 text-sm">
                 <li className="flex items-center">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-300 mr-3" />
-                  Access is granted for this session only.
+                  It opens your dashboard seamlessly on their device.
                 </li>
                 <li className="flex items-center">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-300 mr-3" />

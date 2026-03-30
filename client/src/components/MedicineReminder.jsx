@@ -10,6 +10,52 @@ const MedicineReminder = () => {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   
+  const [isListeningName, setIsListeningName] = useState(false);
+  const [isListeningDosage, setIsListeningDosage] = useState(false);
+
+  const handleVoiceCommand = (field) => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      toast.error('Voice recognition is not supported in your browser.');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      if (field === 'medicineName') setIsListeningName(true);
+      if (field === 'dosage') setIsListeningDosage(true);
+      toast.success('Listening... Speak now', { icon: '🎙️' });
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      if (field === 'medicineName') {
+        setFormData((prev) => ({ ...prev, medicineName: prev.medicineName ? `${prev.medicineName} ${transcript}` : transcript }));
+      } else if (field === 'dosage') {
+        setFormData((prev) => ({ ...prev, dosage: prev.dosage ? `${prev.dosage} ${transcript}` : transcript }));
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      if (field === 'medicineName') setIsListeningName(false);
+      if (field === 'dosage') setIsListeningDosage(false);
+      toast.error('Error recognizing voice. Please try again.');
+    };
+
+    recognition.onend = () => {
+      if (field === 'medicineName') setIsListeningName(false);
+      if (field === 'dosage') setIsListeningDosage(false);
+    };
+
+    recognition.start();
+  };
+
   // Form State
   const [formData, setFormData] = useState({
     medicineName: '',
@@ -118,7 +164,18 @@ const MedicineReminder = () => {
             
             <form onSubmit={handleAddReminder} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1">Medicine Name</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-semibold text-slate-700">Medicine Name</label>
+                  <button
+                    type="button"
+                    onClick={() => handleVoiceCommand('medicineName')}
+                    disabled={isListeningName}
+                    className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 ${isListeningName ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                    title="Use voice to text"
+                  >
+                    {isListeningName ? <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin" /> : <span className="text-lg leading-none">🎙️</span>}
+                  </button>
+                </div>
                 <input 
                   type="text" required
                   value={formData.medicineName}
@@ -129,7 +186,18 @@ const MedicineReminder = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1">Dosage</label>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-semibold text-slate-700">Dosage</label>
+                    <button
+                      type="button"
+                      onClick={() => handleVoiceCommand('dosage')}
+                      disabled={isListeningDosage}
+                      className={`p-1.5 rounded-lg transition-colors flex items-center gap-1 ${isListeningDosage ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                      title="Use voice to text"
+                    >
+                      {isListeningDosage ? <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin" /> : <span className="text-lg leading-none">🎙️</span>}
+                    </button>
+                  </div>
                   <input 
                     type="text" required
                     value={formData.dosage}

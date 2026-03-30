@@ -28,18 +28,17 @@ export const uploadRecord = async (req, res) => {
     if (!user || !user.patientProfile) {
       return res.status(404).json({ error: 'Patient profile not found' });
     }
-
-    const record = await prisma.medicalRecord.create({
-      data: {
-        title,
-        type,
-        fileUrl,
-        description,
-        patientId: user.patientProfile.id,
-        doctorId: doctorId || null,
-        date: new Date(),
-      },
+    const records = await prisma.record.findMany({
+      where: { patientId: userId }, // or req.user.id
+      include: {
+        patient: {
+          select: {
+            name: true
+          }
+        }
+      }
     });
+
 
     res.status(201).json(record);
   } catch (error) {

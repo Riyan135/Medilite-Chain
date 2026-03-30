@@ -13,7 +13,8 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'medilite_records',
-    allowed_formats: ['jpg', 'png', 'pdf'],
+    allowed_formats: ['jpg', 'png', 'pdf', 'txt'],
+    resource_type: 'auto',
   },
 });
 

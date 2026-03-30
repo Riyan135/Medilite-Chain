@@ -20,8 +20,21 @@
   --color-border: hsl(214.3 31.8% 91.4%);
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(221.2 83.2% 53.3%);
-  --radius: 0.5rem;
-  --font-sans: "Inter", sans-serif;
+  --radius: 0.75rem;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-slide-up-fade: slide-up-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes slide-up-fade {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
 }
 
 @layer base {
@@ -29,6 +42,6 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased text-base selection:bg-primary/20 selection:text-primary;
   }
 }

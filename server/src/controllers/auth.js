@@ -41,12 +41,22 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, name, password } = req.body;
 
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    let user;
+    if (email) {
+      user = await prisma.user.findUnique({ where: { email } });
+    } else if (name) {
+      user = await prisma.user.findFirst({ 
+        where: { 
+          name: { equals: name, mode: 'insensitive' } 
+        } 
+      });
+    }
+
     if (!user) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);

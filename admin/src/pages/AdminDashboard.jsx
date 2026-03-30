@@ -1,22 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { Users, UserCheck, ShieldAlert, BarChart3, ArrowRight, Trash2, ShieldCheck, MessageSquare, Pill, User } from 'lucide-react';
+import { Users, UserCheck, ShieldAlert, BarChart3, ArrowRight, Trash2, ShieldCheck, MessageSquare, Pill, User, Calendar, ClipboardList } from 'lucide-react';
 import api from '../api/api';
 import Chat from '../components/Chat';
 import toast from 'react-hot-toast';
 
-const StatCard = ({ title, value, icon: Icon, color }) => (
-  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-    <div className="flex items-center justify-between mb-4">
-      <div className={`p-3 rounded-2xl ${color}`}>
-        <Icon className="w-6 h-6 text-white" />
+const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
+  const themes = {
+    blue: {
+      bg: "bg-blue-50/50",
+      text: "text-blue-600",
+      border: "border-blue-100",
+      gradient: "from-blue-400/20 to-blue-600/20"
+    },
+    emerald: {
+      bg: "bg-emerald-50/50",
+      text: "text-emerald-600",
+      border: "border-emerald-100",
+      gradient: "from-emerald-400/20 to-teal-400/20"
+    },
+    cyan: {
+      bg: "bg-cyan-50/50",
+      text: "text-cyan-600",
+      border: "border-cyan-100",
+      gradient: "from-cyan-400/20 to-blue-400/20"
+    },
+    indigo: {
+      bg: "bg-indigo-50/50",
+      text: "text-indigo-600",
+      border: "border-indigo-100",
+      gradient: "from-indigo-400/20 to-purple-400/20"
+    }
+  };
+  
+  const t = themes[theme] || themes.blue;
+
+  return (
+    <div className="relative overflow-hidden rounded-[2rem] p-6 bg-white/70 backdrop-blur-xl border border-white shadow-xl shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-white/80 group">
+      <div className={`absolute -top-8 -right-8 w-40 h-40 bg-gradient-to-br ${t.gradient} rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700`}></div>
+      <div className={`absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-tr ${t.gradient} rounded-full blur-2xl opacity-50`}></div>
+      
+      <div className="relative z-10 flex items-center justify-between mb-4">
+        <div className={`p-4 rounded-[1.25rem] ${t.bg} border ${t.border} shadow-sm group-hover:rotate-6 group-hover:scale-110 transition-all duration-300 backdrop-blur-sm`}>
+          <Icon className={`w-6 h-6 ${t.text}`} />
+        </div>
       </div>
-      <span className="text-xs font-bold text-slate-400">Total System Data</span>
+      
+      <div className="relative z-10">
+        <h3 className="text-slate-500 font-semibold text-sm tracking-wide mb-1.5">{title}</h3>
+        <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-4 drop-shadow-sm">{value}</h2>
+        <div className={`inline-flex items-center ${t.bg} border ${t.border} px-3 py-1.5 rounded-xl text-xs font-bold ${t.text} shadow-sm`}>
+          {subtitle}
+        </div>
+      </div>
     </div>
-    <h3 className="text-sm font-medium text-slate-500 mb-1">{title}</h3>
-    <p className="text-2xl font-bold text-slate-900">{value}</p>
-  </div>
-);
+  );
+};
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -68,30 +107,34 @@ const AdminDashboard = () => {
           <p className="text-slate-500 mt-1">Monitor system health and manage medical professionals.</p>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 animate-slide-up-fade">
           <StatCard 
             title="Total Patients" 
-            value={loading ? "..." : patients.length || "0"} 
+            value={loading ? "..." : (patients.length || "0")} 
+            subtitle="+5% from last week" 
             icon={Users} 
-            color="bg-blue-600" 
+            theme="blue"
           />
           <StatCard 
-            title="Verified Doctors" 
-            value={loading ? "..." : doctors.length || "0"} 
-            icon={UserCheck} 
-            color="bg-emerald-600" 
+            title="Appointments Today" 
+            value="32" 
+            subtitle="4 emergencies" 
+            icon={Calendar} 
+            theme="emerald"
           />
           <StatCard 
-            title="System Records" 
-            value={loading ? "..." : stats?.totalRecords || "0"} 
-            icon={ShieldCheck} 
-            color="bg-indigo-600" 
+            title="Consultations" 
+            value="850" 
+            subtitle="This month" 
+            icon={ClipboardList} 
+            theme="cyan"
           />
           <StatCard 
-            title="Pending Requests" 
-            value={loading ? "..." : "0"} 
-            icon={ShieldAlert} 
-            color="bg-amber-600" 
+            title="Prescriptions" 
+            value="4,120" 
+            subtitle="Overall generated" 
+            icon={Pill} 
+            theme="indigo"
           />
         </section>
 

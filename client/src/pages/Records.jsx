@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle } from 'lucide-react';
+import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle, Share2 } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -16,8 +16,8 @@ const Records = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [activeSummary, setActiveSummary] = useState(null);
+  const [activeRecordId, setActiveRecordId] = useState(null);
   const [showQRModal, setShowQRModal] = useState(false);
-  const [activeQR, setActiveQR] = useState(null);
   const [generatingOverview, setGeneratingOverview] = useState(false);
   const [showOverviewModal, setShowOverviewModal] = useState(false);
   const [healthOverview, setHealthOverview] = useState(null);
@@ -42,14 +42,16 @@ const Records = () => {
   };
 
 
-  const handleSummarize = async (id) => {
+  const handleSummarize = async (id, langOverride) => {
+    const lang = langOverride || selectedLanguage;
     setSummarizingId(id);
     try {
-      const response = await api.post(`/records/${id}/summarize`, { language: selectedLanguage });
+      const response = await api.post(`/records/${id}/summarize`, { language: lang });
       setActiveSummary(response.data.summary);
+      setActiveRecordId(id);
       setShowSummaryModal(true);
       toast.success('Summary generated successfully!');
-      fetchRecords(); 
+      fetchRecords();
     } catch (error) {
       console.error('Error summarizing record:', error);
       toast.error('Failed to generate summary. Please check your AI configuration.');
@@ -107,52 +109,89 @@ const Records = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const handleDownload = async (fileUrl, title) => {
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${title}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      toast.error('Failed to download file directly. Opening in new tab instead.');
+      window.open(fileUrl, '_blank');
+    }
+  };
+
+  const handleShare = async (record) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Medical Record: ${record.title}`,
+          text: `Check out my medical record: ${record.title}`,
+          url: record.fileUrl,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      navigator.clipboard.writeText(record.fileUrl);
+      toast.success('Link copied to clipboard!');
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-400/20 to-indigo-400/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float pointer-events-none z-0"></div>
       <Sidebar role="patient" />
-      <main className="flex-1 overflow-y-auto p-8">
-        <header className="flex justify-between items-center mb-10 flex-wrap gap-4">
+      <main className="flex-1 overflow-y-auto p-8 relative z-10">
+        <header className="flex flex-col md:flex-row md:justify-between items-start md:items-end mb-12 gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Medical Records</h1>
-            <p className="text-slate-500 mt-1">Access and manage all your uploaded medical documents.</p>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Medical Records</h1>
+            <p className="text-lg text-slate-500 mt-2 font-medium">Access and manage all your uploaded medical documents securely.</p>
           </div>
           <button
             onClick={handleGenerateOverview}
             disabled={generatingOverview || records.length === 0}
-            className="flex items-center px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all disabled:opacity-50"
+            className="flex items-center px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-600/25 hover:bg-indigo-700 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-600/30 transition-all duration-300 disabled:opacity-50 disabled:hover:-translate-y-0 w-full md:w-auto justify-center"
           >
             {generatingOverview ? (
-              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3" />
             ) : (
-              <BrainCircuit className="w-5 h-5 mr-2" />
+              <BrainCircuit className="w-6 h-6 mr-3" />
             )}
             Whole Picture Summary
           </button>
         </header>
 
 
-        <section className="bg-white p-6 rounded-3xl border border-slate-200 mb-8 flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <section className="bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 mb-8 flex flex-col md:flex-row gap-4 animate-slide-up-fade">
+          <div className="flex-1 relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
             <input
               type="text"
               placeholder="Search records by title..."
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
+              className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <div className="flex gap-4">
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <div className="relative group min-w-[200px]">
+              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
               <select
-                className="pl-10 pr-8 py-3 bg-slate-50 border border-slate-100 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none appearance-none font-semibold text-slate-600"
+                className="w-full pl-12 pr-8 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none appearance-none font-bold text-slate-700 transition-all cursor-pointer"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
-                <option value="ALL">All Types</option>
-                <option value="REPORT">Reports</option>
-                <option value="BILL">Bills</option>
+                <option value="ALL">All Document Types</option>
+                <option value="REPORT">Medical Reports</option>
+                <option value="BILL">Hospital Bills</option>
                 <option value="PRESCRIPTION">Prescriptions</option>
                 <option value="LAB_TEST">Lab Tests</option>
               </select>
@@ -166,55 +205,57 @@ const Records = () => {
             <p className="text-slate-400 font-medium">Fetching your records...</p>
           </div>
         ) : filteredRecords.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredRecords.map(record => (
-              <div key={record.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-slate-200/50 transition-all group">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+            {filteredRecords.map((record, idx) => (
+              <div key={record.id} className="bg-white/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-900/5 hover:-translate-y-2 transition-all duration-500 group animate-slide-up-fade" style={{ animationDelay: `${idx * 0.1}s` }}>
                 <div className="flex justify-between items-start mb-6">
-                  <div className="p-4 bg-primary/5 rounded-2xl group-hover:bg-primary group-hover:text-white transition-colors">
-                    <FileText className="w-6 h-6" />
+                  <div className="p-4 bg-white rounded-2xl group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-lg transition-all duration-300 text-blue-600 border border-slate-100">
+                    <FileText className="w-7 h-7" />
                   </div>
                   <div className="flex space-x-2">
                     <a
                       href={record.fileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-primary transition-colors"
+                      className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-blue-600 transition-colors shadow-sm"
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      <ExternalLink className="w-5 h-5" />
                     </a>
                     <button
                       onClick={() => handleDelete(record.id)}
-                      className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                      className="p-2.5 bg-slate-50 hover:bg-red-50 rounded-xl text-slate-400 hover:text-red-500 transition-colors shadow-sm"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-slate-500 bg-slate-100/50 px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200 border-dashed">
                     {record.type.replace('_', ' ')}
                   </span>
                   <div className="flex gap-2">
                     {record.summary && (
                       <button
-                        onClick={() => { setActiveSummary(record.summary); setShowSummaryModal(true); }}
-                        className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center"
+                        onClick={() => { setActiveSummary(record.summary); setActiveRecordId(record.id); setShowSummaryModal(true); }}
+                        className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full uppercase tracking-widest flex items-center shadow-sm hover:bg-emerald-100 transition-colors"
                       >
-                        <BrainCircuit className="w-3 h-3 mr-1" />
+                        <BrainCircuit className="w-3 h-3 mr-1.5" />
                         Summarized
                       </button>
                     )}
                   </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mt-2 mb-1 truncate">{record.title}</h3>
-                <p className="text-xs text-slate-400 mb-6">{new Date(record.date).toLocaleDateString()} • Added by You</p>
+                <h3 className="text-xl font-black text-slate-900 mt-2 mb-2 truncate group-hover:text-blue-600 transition-colors">{record.title}</h3>
+                <p className="text-xs font-bold text-slate-400 mb-8 tracking-wide">
+                  {new Date(record.date).toLocaleDateString()} • <span className="text-slate-500">Added by You</span>
+                </p>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   <button
                     onClick={() => handleSummarize(record.id)}
                     disabled={summarizingId === record.id}
-                    className="flex items-center justify-center py-2 bg-indigo-50 text-indigo-700 rounded-xl font-bold hover:bg-indigo-100 transition-colors text-sm disabled:opacity-50"
+                    className="flex justify-center items-center py-3 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-xl font-black hover:bg-indigo-100 hover:-translate-y-0.5 transition-all text-xs uppercase tracking-widest disabled:opacity-50 disabled:hover:-translate-y-0 shadow-sm"
                   >
                     {summarizingId === record.id ? (
                       <div className="w-4 h-4 border-2 border-indigo-700/20 border-t-indigo-700 rounded-full animate-spin mr-2" />
@@ -225,21 +266,32 @@ const Records = () => {
                   </button>
                   <button
                     onClick={() => handleShowQR(record.id)}
-                    className="flex items-center justify-center py-2 bg-slate-50 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors text-sm"
+                    className="flex justify-center items-center py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-black hover:bg-slate-50 hover:-translate-y-0.5 hover:border-blue-200 transition-all text-xs uppercase tracking-widest shadow-sm"
                   >
                     <QrCode className="w-4 h-4 mr-2" />
-                    QR Code
+                    Share QR
                   </button>
                 </div>
 
-                <a
-                  href={record.fileUrl}
-                  download
-                  className="w-full flex items-center justify-center py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download File
-                </a>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDownload(record.fileUrl, record.title);
+                    }}
+                    className="flex flex-1 items-center justify-center py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-md"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </button>
+                  <button
+                    onClick={() => handleShare(record)}
+                    className="flex flex-1 items-center justify-center py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-colors border border-slate-200"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share File
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -258,17 +310,28 @@ const Records = () => {
       </main>
 
       {/* Language Selector Sticky */}
-      <div className="fixed bottom-8 right-8 z-40 bg-white p-4 rounded-2xl shadow-2xl border border-slate-200 flex items-center gap-3">
-        <Globe className="w-5 h-5 text-primary" />
+      <div className="fixed bottom-8 right-8 z-40 bg-white/80 backdrop-blur-xl p-4 rounded-3xl shadow-2xl shadow-blue-900/10 border border-white/60 flex items-center gap-4 hover:shadow-blue-900/20 transition-all hover:-translate-y-1 group">
+        <div className="p-2 bg-blue-50 rounded-xl">
+          <Globe className="w-5 h-5 text-blue-600 group-hover:animate-spin-once" />
+        </div>
         <select
-          className="bg-transparent font-bold text-slate-700 outline-none"
+          className="bg-transparent font-bold text-slate-700 outline-none cursor-pointer appearance-none pr-6"
           value={selectedLanguage}
           onChange={(e) => setSelectedLanguage(e.target.value)}
         >
           <option value="English">English</option>
           <option value="Hindi">हिन्दी (Hindi)</option>
           <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
+          <option value="Marathi">मराठी (Marathi)</option>
+          <option value="Tamil">தமிழ் (Tamil)</option>
+          <option value="Telugu">తెలుగు (Telugu)</option>
+          <option value="Urdu">اردو (Urdu)</option>
+          <option value="Malyalam">മലയാളം (Malyalam)</option>
+          <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
         </select>
+        <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center text-slate-400">
+          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+        </div>
       </div>
 
       {/* Summary Modal */}
@@ -285,12 +348,39 @@ const Records = () => {
                   <p className="text-xs text-slate-500">Multilingual Summary Analysis</p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowSummaryModal(false)}
-                className="p-2 hover:bg-slate-200 rounded-xl transition-colors"
-              >
-                <X className="w-6 h-6 text-slate-400" />
-              </button>
+              <div className="flex items-center gap-4">
+                <div className="bg-white border text-sm font-semibold rounded-xl flex items-center shadow-sm p-1">
+                  <span className="text-xs text-slate-400 pl-3">Translate:</span>
+                  <select
+                    className="bg-transparent border-none outline-none pl-2 pr-2 py-1 cursor-pointer text-slate-700"
+                    value={selectedLanguage}
+                    onChange={(e) => {
+                      setSelectedLanguage(e.target.value);
+                      handleSummarize(activeRecordId, e.target.value);
+                    }}
+                    disabled={summarizingId === activeRecordId}
+                  >
+                    <option value="English">English</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Kannada">Kannada</option>
+                    <option value="Marathi">Marathi</option>
+                    <option value="Tamil">Tamil</option>
+                    <option value="Telugu">Telugu</option>
+                    <option value="Urdu">Urdu</option>
+                    <option value="Malyalam">Malyalam</option>
+                    <option value="Punjabi">Punjabi</option>
+                  </select>
+                  {summarizingId === activeRecordId && (
+                    <div className="w-3 h-3 border-2 border-primary/20 border-t-primary rounded-full animate-spin mr-3" />
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowSummaryModal(false)}
+                  className="p-2 hover:bg-slate-200 rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6 text-slate-400" />
+                </button>
+              </div>
             </div>
 
             <div className="p-8 overflow-y-auto space-y-8">

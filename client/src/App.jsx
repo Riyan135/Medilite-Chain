@@ -7,12 +7,15 @@ import DoctorDashboard from './pages/DoctorDashboard';
 import PatientDetails from './pages/PatientDetails';
 import HealthTimeline from './pages/HealthTimeline';
 import MedicineReminders from './pages/MedicineReminders';
-import Inventory from './pages/Inventory';
 import QRProfile from './pages/QRProfile';
 import Records from './pages/Records';
 import LandingPage from './pages/LandingPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import SymptomChecker from './pages/SymptomChecker';
+import EmergencySOS from './pages/EmergencySOS';
+import FamilyProfiles from './pages/FamilyProfiles';
+import AppointmentBooking from './pages/AppointmentBooking';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -36,12 +39,12 @@ const PrivateRoute = ({ children, allowedRoles }) => {
       'DOCTOR': '/doctor-dashboard',
       'ADMIN': 'http://localhost:5174'
     };
-    
+
     if (user.role === 'ADMIN') {
       window.location.href = dashboardMap['ADMIN'];
       return null;
     }
-    
+
     return <Navigate to={dashboardMap[user.role] || '/'} replace />;
   }
 
@@ -59,12 +62,12 @@ const PublicRoute = ({ children }) => {
       'DOCTOR': '/doctor-dashboard',
       'ADMIN': 'http://localhost:5174'
     };
-    
+
     if (user.role === 'ADMIN') {
       window.location.href = dashboardMap['ADMIN'];
       return null;
     }
-    
+
     return <Navigate to={dashboardMap[user.role] || '/'} replace />;
   }
 
@@ -79,89 +82,123 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
-          <Route 
-            path="/sign-in/*" 
+          <Route
+            path="/sign-in/*"
             element={
               <PublicRoute>
                 <SignInPage />
               </PublicRoute>
-            } 
+            }
           />
-          <Route 
-            path="/sign-up/*" 
+          <Route
+            path="/sign-up/*"
             element={
               <PublicRoute>
                 <SignUpPage />
               </PublicRoute>
-            } 
+            }
           />
 
           {/* Patient Routes */}
-          <Route 
-            path="/dashboard" 
+          <Route
+            path="/dashboard"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <PatientDashboard />
               </PrivateRoute>
-            } 
+            }
           />
-          <Route 
-            path="/timeline" 
+          <Route
+            path="/dashboard/:memberId"
+            element={
+              <PrivateRoute allowedRoles={['PATIENT']}>
+                <PatientDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/timeline"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <HealthTimeline />
               </PrivateRoute>
-            } 
+            }
           />
-          <Route 
-            path="/records" 
+          <Route
+            path="/records"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <Records />
               </PrivateRoute>
-            } 
+            }
           />
-          <Route 
-            path="/reminders" 
+          <Route
+            path="/reminders"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <MedicineReminders />
               </PrivateRoute>
-            } 
+            }
           />
-          <Route 
-            path="/inventory" 
+
+          <Route
+            path="/family-profiles"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
-                <Inventory />
+                <FamilyProfiles />
               </PrivateRoute>
-            } 
+            }
           />
-          <Route 
-            path="/qr" 
+
+          <Route
+            path="/qr"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <QRProfile />
               </PrivateRoute>
-            } 
+            }
+          />
+          <Route
+            path="/symptom-checker"
+            element={
+              <PrivateRoute allowedRoles={['PATIENT']}>
+                <SymptomChecker />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/emergency"
+            element={
+              <PrivateRoute allowedRoles={['PATIENT']}>
+                <EmergencySOS />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/book-appointment"
+            element={
+              <PrivateRoute allowedRoles={['PATIENT']}>
+                <AppointmentBooking />
+              </PrivateRoute>
+            }
           />
 
           {/* Doctor Routes */}
-          <Route 
-            path="/doctor-dashboard" 
+          <Route
+            path="/doctor-dashboard"
             element={
               <PrivateRoute allowedRoles={['DOCTOR']}>
                 <DoctorDashboard />
               </PrivateRoute>
-            } 
+            }
           />
-          <Route 
-            path="/doctor/patient/:clerkId" 
+          <Route
+            path="/doctor/patient/:clerkId"
             element={
               <PrivateRoute allowedRoles={['DOCTOR']}>
                 <PatientDetails />
               </PrivateRoute>
-            } 
+            }
           />
 
 

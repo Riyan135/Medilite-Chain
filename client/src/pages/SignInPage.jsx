@@ -47,25 +47,29 @@ const SignInPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 opacity-60"></div>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
+      <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400/30 to-indigo-400/30 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 animate-float pointer-events-none"></div>
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-purple-400/20 to-blue-400/20 rounded-full blur-[120px] translate-x-1/2 translate-y-1/2 animate-float pointer-events-none" style={{animationDelay: '2s'}}></div>
       
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md animate-slide-up-fade">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-gray-400 hover:text-blue-600 transition-colors mb-6 group">
-            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-sm font-medium">Back to Home</span>
+          <Link to="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-blue-600 transition-all mb-6 group bg-white/50 backdrop-blur px-4 py-2 rounded-full border border-slate-200/50 shadow-sm hover:shadow-md">
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform duration-300" />
+            <span className="text-sm font-bold">Back to Home</span>
           </Link>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Activity className="h-10 w-10 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">MediLite</span>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100/50 shadow-sm shadow-blue-900/5">
+              <Activity className="h-8 w-8 text-blue-600" />
+            </div>
+            <span className="text-3xl font-black text-slate-900 tracking-tight">Medi<span className="text-blue-600">Lite</span></span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-          <p className="text-gray-500">Sign in to your medical portal</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Welcome Back</h1>
+          <p className="text-slate-500 font-medium">Sign in to your secure medical portal</p>
         </div>
 
-        <div className="bg-white p-8 rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-white/60">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100">
                 {error}
@@ -73,15 +77,15 @@ const SignInPage = () => {
             )}
             
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-700">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <label className="text-sm font-bold text-slate-700 tracking-wide">Email Address</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                 <input
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
                   placeholder="name@example.com"
                 />
               </div>
@@ -89,23 +93,23 @@ const SignInPage = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <label className="text-sm font-semibold text-gray-700">Password</label>
-                <a href="#" className="text-xs font-semibold text-blue-600 hover:text-blue-700">Forgot?</a>
+                <label className="text-sm font-bold text-slate-700 tracking-wide">Password</label>
+                <a href="#" className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">Recover?</a>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                  className="w-full pl-12 pr-12 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -115,7 +119,7 @@ const SignInPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 hover:scale-[1.01] transition-all disabled:opacity-70 disabled:hover:scale-100 flex items-center justify-center"
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/25 transition-all duration-300 disabled:opacity-70 disabled:hover:-translate-y-0 disabled:hover:shadow-none flex items-center justify-center"
             >
               {loading ? (
                 <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

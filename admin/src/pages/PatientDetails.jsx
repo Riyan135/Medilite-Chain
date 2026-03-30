@@ -23,6 +23,15 @@ const PatientDetails = () => {
   const [generatingOverview, setGeneratingOverview] = useState(false);
   const [showOverviewModal, setShowOverviewModal] = useState(false);
   const [healthOverview, setHealthOverview] = useState(null);
+  const [symptomHistory, setSymptomHistory] = useState([]);
+
+  useEffect(() => {
+    if (patient?.patientProfile?.id) {
+      api.get(`/symptoms/patient/${patient.patientProfile.id}`)
+        .then(res => setSymptomHistory(res.data))
+        .catch(err => console.error('Error fetching symptom history:', err));
+    }
+  }, [patient?.patientProfile?.id]);
 
   const handleGenerateOverview = async () => {
     if (!patient?.patientProfile?.records || patient.patientProfile.records.length === 0) {
@@ -238,6 +247,33 @@ const PatientDetails = () => {
                   ))
                 ) : (
                   <p className="text-slate-400 text-center py-4">No medical notes found.</p>
+                )}
+              </div>
+            </section>
+
+            <section className="bg-white p-8 rounded-3xl border border-slate-200">
+              <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                <Activity className="w-5 h-5 mr-2 text-indigo-500" />
+                Symptom Check History
+              </h3>
+              <div className="space-y-6">
+                {symptomHistory?.length > 0 ? (
+                  symptomHistory.map((check) => (
+                    <div key={check.id} className="p-4 border border-slate-100 rounded-xl bg-slate-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-slate-900">{check.predictedDisease}</h4>
+                        <span className="text-xs font-bold text-slate-400">{new Date(check.date).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-3"><span className="font-semibold text-slate-800">Symptoms:</span> {check.symptoms}</p>
+                      <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider flex-wrap">
+                        <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md">{check.doctorSuggested}</span>
+                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md">{check.careType}</span>
+                        <span className={`px-2 py-1 rounded-md ${check.riskLevel?.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' : check.riskLevel?.toLowerCase() === 'medium' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>Risk: {check.riskLevel || 'Unknown'}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-400 text-center py-4">No symptom assessments found.</p>
                 )}
               </div>
             </section>

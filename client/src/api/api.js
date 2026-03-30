@@ -34,7 +34,7 @@ api.interceptors.response.use(
     
     // Don't show toast for 401s if we're on the sign-in page, otherwise show it
     if (error.response?.status === 401) {
-      if (!window.location.pathname.includes('/sign-in')) {
+      if (!window.location.pathname.includes('/sign-in') && !window.location.pathname.includes('/emergency')) {
         toast.error('Session expired. Please sign in again.');
         localStorage.removeItem('medilite_user');
         window.location.href = '/sign-in';

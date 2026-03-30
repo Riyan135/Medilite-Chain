@@ -3,22 +3,21 @@ import MedicalRecordUpload from '../components/MedicalRecordUpload';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Chat from '../components/Chat';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
 
 const Card = ({ title, value, icon: Icon, color }) => (
-// ... existing code ...
-  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-    <div className="flex justify-between items-start mb-4">
-      <div className={`p-3 rounded-xl ${color} bg-opacity-10`}>
-        <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
+  <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-1.5 transition-all duration-500 group relative overflow-hidden">
+    <div className="flex justify-between items-start mb-6">
+      <div className={`p-4 rounded-2xl ${color} bg-opacity-10 group-hover:scale-110 transition-transform duration-500 shadow-inner`}>
+        <Icon className={`w-7 h-7 ${color.replace('bg-', 'text-')}`} />
       </div>
-      <span className="text-xs font-medium text-slate-400">Past 30 days</span>
+      <span className="text-xs font-bold text-slate-400 tracking-wider uppercase bg-slate-100/50 px-3 py-1 rounded-full">30 Days</span>
     </div>
-    <h3 className="text-sm font-medium text-slate-500 mb-1">{title}</h3>
-    <p className="text-2xl font-bold text-slate-900">{value}</p>
+    <h3 className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">{title}</h3>
+    <p className="text-4xl font-black text-slate-900 tracking-tight">{value}</p>
   </div>
 );
 
@@ -35,7 +34,7 @@ const EditProfileModal = ({ profile, onClose }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.put(`/patients/profile/${user.id}`, formData);
+      await api.put(`/patients/profile/${profile?.userId || user?.id}`, formData);
       toast.success('Medical profile updated');
       onClose();
     } catch (error) {
@@ -47,42 +46,42 @@ const EditProfileModal = ({ profile, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 transform animate-in fade-in zoom-in duration-300">
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Edit Medical Profile</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white/90 backdrop-blur-2xl w-full max-w-md rounded-[2rem] shadow-2xl p-10 border border-white/60 transform animate-in fade-in zoom-in duration-300">
+        <h2 className="text-2xl font-black text-slate-900 mb-8 tracking-tight">Edit Medical Profile</h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Blood Group</label>
-            <input 
-              type="text" 
+            <label className="block text-sm font-bold text-slate-700 tracking-wide uppercase mb-2">Blood Group</label>
+            <input
+              type="text"
               value={formData.bloodGroup}
-              onChange={(e) => setFormData({...formData, bloodGroup: e.target.value})}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
+              onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900"
               placeholder="e.g. O+ve"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Allergies</label>
-            <textarea 
+            <label className="block text-sm font-bold text-slate-700 tracking-wide uppercase mb-2">Allergies</label>
+            <textarea
               value={formData.allergies}
-              onChange={(e) => setFormData({...formData, allergies: e.target.value})}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none h-24 resize-none"
+              onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none h-28 resize-none transition-all font-medium text-slate-900"
               placeholder="List any medicine or food allergies..."
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">Emergency Contact</label>
-            <input 
-              type="text" 
+            <label className="block text-sm font-bold text-slate-700 tracking-wide uppercase mb-2">Emergency Contact</label>
+            <input
+              type="text"
               value={formData.emergencyContact}
-              onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none"
+              onChange={(e) => setFormData({ ...formData, emergencyContact: e.target.value })}
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900"
               placeholder="Name and Phone"
             />
           </div>
-          <div className="flex gap-4 mt-6">
-            <button type="button" onClick={onClose} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/25 disabled:bg-slate-300">
+          <div className="flex gap-4 mt-8">
+            <button type="button" onClick={onClose} className="flex-1 py-4 bg-slate-100/80 text-slate-700 rounded-2xl font-black hover:bg-slate-200 transition-colors">Cancel</button>
+            <button type="submit" disabled={loading} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-600/25 disabled:opacity-70 disabled:shadow-none hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300">
               {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
@@ -95,6 +94,9 @@ const EditProfileModal = ({ profile, onClose }) => {
 const PatientDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { memberId } = useParams();
+  const targetId = memberId || user?.id;
+
   const [showUpload, setShowUpload] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [records, setRecords] = useState([]);
@@ -103,20 +105,42 @@ const PatientDashboard = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeChat, setActiveChat] = useState(null);
+  const [dashboardName, setDashboardName] = useState(user?.name);
+  const [relation, setRelation] = useState('');
 
   useEffect(() => {
-    if (user?.id) {
+    if (targetId) {
       fetchAllData();
+      if (memberId) {
+        fetchMemberDetails();
+      } else {
+        setDashboardName(user?.name);
+        setRelation('');
+      }
     }
-  }, [user]);
+  }, [targetId, user]);
+
+  const fetchMemberDetails = async () => {
+    try {
+      const res = await api.get('/family');
+      const member = res.data.find(m => m.id === memberId);
+      if (member) {
+        setDashboardName(member.name);
+        setRelation(member.relationToParent);
+      }
+    } catch (error) {
+      console.error('Failed to fetch family member details', error);
+    }
+  };
 
   const fetchAllData = async () => {
     try {
+      setLoading(true);
       const [recordsRes, statsRes, profileRes, inventoryRes] = await Promise.all([
-        api.get(`/records/patient/${user.id}`),
-        api.get(`/patients/stats/${user.id}`),
-        api.get(`/patients/profile/${user.id}`),
-        api.get(`/inventory/${user.id}`)
+        api.get(`/records/patient/${targetId}`),
+        api.get(`/patients/stats/${targetId}`),
+        api.get(`/patients/profile/${targetId}`),
+        api.get(`/inventory/${targetId}`)
       ]);
       setRecords(recordsRes.data);
       setStats(statsRes.data);
@@ -132,40 +156,48 @@ const PatientDashboard = () => {
   const lowStockItems = inventory.filter(item => item.stock <= item.minThreshold);
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-slate-50 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-400/20 to-indigo-400/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float pointer-events-none z-0"></div>
       <Sidebar role="patient" />
-      <main className="flex-1 overflow-y-auto p-8">
-        <header className="flex justify-between items-center mb-10">
+      <main className="flex-1 overflow-y-auto p-8 relative z-10">
+        <header className="flex justify-between items-end mb-12 flex-wrap gap-6">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Patient Dashboard</h1>
-            <p className="text-slate-500 mt-1">Hello, {user?.name}! Here is your health overview.</p>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
+              {memberId ? `${dashboardName}'s Dashboard` : 'Patient Dashboard'}
+            </h1>
+            <p className="text-lg text-slate-500 mt-2 font-medium">
+              {memberId
+                ? `Viewing health overview for your ${relation.toLowerCase()}.`
+                : `Hello, ${user?.name}! Here is your health overview.`}
+            </p>
           </div>
           <div className="flex gap-4">
             <button
-               onClick={async () => {
-                 try {
-                   const res = await api.get('/auth/admin-id');
-                   setActiveChat({ id: res.data.id, name: 'MediLite Admin' });
-                 } catch (e) {
-                   toast.error('Support chat is currently unavailable');
-                 }
-               }}
-               className="flex items-center px-5 py-3 bg-white text-slate-700 border border-slate-200 rounded-xl font-semibold shadow-sm hover:bg-slate-50 transition-colors"
+              onClick={async () => {
+                try {
+                  const res = await api.get('/auth/admin-id');
+                  setActiveChat({ id: res.data.id, name: 'MediLite Admin' });
+                } catch (e) {
+                  toast.error('Support chat is currently unavailable');
+                }
+              }}
+              className="flex items-center px-6 py-4 bg-white/70 backdrop-blur text-slate-700 border border-slate-200 rounded-2xl font-black shadow-lg shadow-slate-200/50 hover:bg-slate-50 hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
             >
-              <MessageSquare className="w-5 h-5 mr-2 text-primary" />
+              <MessageSquare className="w-5 h-5 mr-3 text-blue-600" />
               Support Chat
             </button>
             <button
               onClick={() => setShowUpload(true)}
-              className="flex items-center px-5 py-3 bg-primary text-white rounded-xl font-semibold shadow-lg shadow-primary/25 hover:scale-[1.02] transition-transform active:scale-[0.98]"
+              className="flex items-center px-6 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-600/25 hover:bg-blue-700 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-600/30 transition-all duration-300 active:scale-[0.98]"
             >
-              <PlusCircle className="w-5 h-5 mr-2" />
+              <PlusCircle className="w-5 h-5 mr-3" />
               Upload New Record
             </button>
           </div>
         </header>
 
-        {lowStockItems.length > 0 && (
+
+        {/* {lowStockItems.length > 0 && (
           <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="flex items-center gap-4">
               <div className="p-2 bg-red-100 rounded-lg">
@@ -176,48 +208,48 @@ const PatientDashboard = () => {
                 <p className="text-sm text-red-600">You have {lowStockItems.length} medicines running low.</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => navigate('/inventory')}
               className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-200"
             >
               Manage Inventory
             </button>
           </div>
-        )}
+        )} */}
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <Card 
-            title="Total Records" 
-            value={loading ? "..." : stats?.totalRecords || "0"} 
-            icon={PlusCircle} 
-            color="bg-blue-600" 
+          <Card
+            title="Total Records"
+            value={loading ? "..." : stats?.totalRecords || "0"}
+            icon={PlusCircle}
+            color="bg-blue-600"
           />
-          <Card 
-            title="Medicine Stock" 
-            value={loading ? "..." : inventory.length || "0"} 
-            icon={Pill} 
-            color="bg-indigo-600" 
+          <Card
+            title="Medicine Stock"
+            value={loading ? "..." : inventory.length || "0"}
+            icon={Pill}
+            color="bg-indigo-600"
           />
-          <Card 
-            title="Upcoming Reminders" 
-            value={loading ? "..." : stats?.activeReminders || "0"} 
-            icon={ArrowUpRight} 
-            color="bg-green-600" 
+          <Card
+            title="Upcoming Reminders"
+            value={loading ? "..." : stats?.activeReminders || "0"}
+            icon={ArrowUpRight}
+            color="bg-green-600"
           />
-          <Card 
-            title="Health Score" 
-            value={loading ? "..." : stats?.healthScore || "N/A"} 
-            icon={Shield} 
-            color="bg-indigo-600" 
+          <Card
+            title="Health Score"
+            value={loading ? "..." : stats?.healthScore || "N/A"}
+            icon={Shield}
+            color="bg-indigo-600"
           />
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <section className="bg-white p-8 rounded-2xl border border-slate-200">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-slate-800">Recent Medical History</h2>
-                <button onClick={() => navigate('/records')} className="text-primary text-sm font-bold hover:underline">View All</button>
+          <div className="lg:col-span-2 space-y-8 animate-slide-up-fade" style={{animationDelay: '0.1s'}}>
+            <section className="bg-white/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 relative overflow-hidden">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Recent Medical History</h2>
+                <button onClick={() => navigate('/records')} className="text-blue-600 text-sm font-bold hover:text-blue-700 hover:underline transition-colors">View All Directory</button>
               </div>
               <div className="space-y-6">
                 {loading ? (
@@ -229,16 +261,16 @@ const PatientDashboard = () => {
                         <FileText className="w-6 h-6 text-slate-400" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-slate-900">{record.title}</h4>
-                        <p className="text-sm text-slate-500">
-                          {new Date(record.date).toLocaleDateString()} • {record.type}
+                        <h4 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{record.title}</h4>
+                        <p className="text-sm text-slate-500 font-medium">
+                          {new Date(record.date).toLocaleDateString()} • <span className="uppercase tracking-wider text-[10px] bg-slate-100 px-2 py-0.5 rounded-full ml-1 font-bold">{record.type}</span>
                         </p>
                       </div>
                       <a
                         href={record.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary font-medium text-sm"
+                        className="text-blue-600 font-bold text-sm bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition-colors group-hover:shadow-sm"
                       >
                         View Report
                       </a>
@@ -251,46 +283,47 @@ const PatientDashboard = () => {
             </section>
           </div>
 
-          <aside className="space-y-8">
-            <section className="bg-indigo-600 p-8 rounded-2xl text-white shadow-xl shadow-indigo-200">
-              <h3 className="text-lg font-bold mb-4">Emergency Profile</h3>
-              <p className="text-sm text-indigo-100 mb-6">In case of emergency, doctors can access this info via your QR code.</p>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm py-2 border-b border-indigo-500/50">
-                  <span className="text-indigo-200">Blood Group</span>
-                  <span className="font-bold">{loading ? "..." : profile?.bloodGroup || "Not Set"}</span>
+          <aside className="space-y-8 animate-slide-up-fade" style={{animationDelay: '0.2s'}}>
+            <section className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2rem] text-white shadow-2xl shadow-indigo-900/20 relative overflow-hidden group hover:shadow-indigo-900/40 hover:-translate-y-1 transition-all duration-500">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-[60px] translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-700"></div>
+              <h3 className="text-xl font-black mb-4 tracking-tight relative z-10">Emergency Profile</h3>
+              <p className="text-sm text-indigo-100 mb-8 font-medium leading-relaxed relative z-10">In case of emergency, doctors can access this info securely via your QR code.</p>
+              <div className="space-y-4 relative z-10">
+                <div className="flex justify-between text-sm py-3 border-b border-indigo-400/30">
+                  <span className="text-indigo-200 font-semibold tracking-wide uppercase text-xs">Blood Group</span>
+                  <span className="font-black text-lg">{loading ? "..." : profile?.bloodGroup || "Not Set"}</span>
                 </div>
-                <div className="flex justify-between text-sm py-2 border-b border-indigo-500/50">
-                  <span className="text-indigo-200">Allergies</span>
-                  <span className="font-bold">{loading ? "..." : profile?.allergies || "None"}</span>
+                <div className="flex justify-between text-sm py-3 border-b border-indigo-400/30">
+                  <span className="text-indigo-200 font-semibold tracking-wide uppercase text-xs">Allergies</span>
+                  <span className="font-black">{loading ? "..." : profile?.allergies || "None"}</span>
                 </div>
                 {profile?.consultingDoctor && (
-                   <div className="mt-4 pt-4 border-t border-indigo-500/50">
-                      <p className="text-xs text-indigo-200 font-bold uppercase tracking-widest mb-1">Assigned Doctor</p>
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs">DR</div>
-                          <span className="font-bold">Dr. {profile.consultingDoctor.name}</span>
-                        </div>
-                        <button 
-                          onClick={() => setActiveChat({ 
-                            id: profile.consultingDoctor.id, 
-                            name: `Dr. ${profile.consultingDoctor.name}` 
-                          })}
-                          className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                          title="Chat with Doctor"
-                        >
-                          <MessageSquare className="w-4 h-4 text-white" />
-                        </button>
+                  <div className="mt-6 pt-4 border-t border-indigo-400/30">
+                    <p className="text-[10px] text-indigo-200 font-black uppercase tracking-widest mb-3">Assigned Care Provider</p>
+                    <div className="flex items-center justify-between gap-2 p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xs font-black">DR</div>
+                        <span className="font-bold tracking-tight text-white">Dr. {profile.consultingDoctor.name}</span>
                       </div>
-                   </div>
+                      <button
+                        onClick={() => setActiveChat({
+                          id: profile.consultingDoctor.id,
+                          name: `Dr. ${profile.consultingDoctor.name}`
+                        })}
+                        className="p-3 bg-white hover:bg-slate-50 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-blue-600 group/btn"
+                        title="Chat with Doctor"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-              <button 
+              <button
                 onClick={() => navigate('/qr')}
-                className="w-full mt-6 py-3 bg-white text-indigo-600 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+                className="w-full mt-8 py-4 bg-white text-indigo-700 rounded-2xl font-black hover:bg-slate-50 transition-all hover:shadow-lg hover:-translate-y-1 relative z-10"
               >
-                View My QR
+                View My SOS QR
               </button>
             </section>
           </aside>
@@ -298,6 +331,7 @@ const PatientDashboard = () => {
       </main>
       {showUpload && (
         <MedicalRecordUpload
+          targetId={targetId}
           onClose={() => {
             setShowUpload(false);
             fetchAllData();
@@ -314,10 +348,10 @@ const PatientDashboard = () => {
         />
       )}
       {activeChat && (
-        <Chat 
-          otherUserId={activeChat.id} 
-          otherUserName={activeChat.name} 
-          onClose={() => setActiveChat(null)} 
+        <Chat
+          otherUserId={activeChat.id}
+          otherUserName={activeChat.name}
+          onClose={() => setActiveChat(null)}
         />
       )}
     </div>
