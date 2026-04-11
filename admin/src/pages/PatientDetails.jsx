@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { User, Calendar, FileText, Plus, ArrowLeft, Pill, Activity, ShieldCheck, MessageSquare, BrainCircuit, X, AlertCircle, ExternalLink } from 'lucide-react';
+import { User, Calendar, FileText, Plus, ArrowLeft, Pill, Activity, ShieldCheck, MessageSquare, BrainCircuit, X, AlertCircle, ExternalLink, Phone, Video } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import Chat from '../components/Chat';
+import { getSocket } from '../lib/socket';
+import ConsultationCallModal from '../components/ConsultationCallModal';
 
 const PatientDetails = () => {
   const { id: patientId } = useParams();
@@ -24,6 +26,8 @@ const PatientDetails = () => {
   const [showOverviewModal, setShowOverviewModal] = useState(false);
   const [healthOverview, setHealthOverview] = useState(null);
   const [symptomHistory, setSymptomHistory] = useState([]);
+  const [activeCall, setActiveCall] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
 
   useEffect(() => {
     if (patient?.patientProfile?.id) {
@@ -73,6 +77,43 @@ const PatientDetails = () => {
     fetchPatientDetails();
   }, [patientId]);
 
+  useEffect(() => {
+    let socket;
+
+    if (doctorUser?.id) {
+      socket = getSocket();
+      socket.emit('join_room', { room: doctorUser.id });
+
+      const handleCallInvite = (data) => {
+        setIncomingCall({
+          callId: data.callId,
+          consultationId: data.consultationId,
+          mode: data.mode,
+          peerUserId: data.caller.id,
+          peerUserName: data.caller.name,
+          isInitiator: false,
+        });
+      };
+
+      const handleCallEnd = (data) => {
+        if (activeCall?.callId === data.callId) {
+          setActiveCall(null);
+          toast('Call ended');
+        }
+      };
+
+      socket.on('consultation_call_invite', handleCallInvite);
+      socket.on('consultation_call_end', handleCallEnd);
+
+      return () => {
+        socket.off('consultation_call_invite', handleCallInvite);
+        socket.off('consultation_call_end', handleCallEnd);
+      };
+    }
+
+    return undefined;
+  }, [doctorUser?.id, activeCall?.callId]);
+
   const fetchPatientDetails = async () => {
     try {
       const response = await api.get(`/doctors/patient/${patientId}`);
@@ -104,6 +145,83 @@ const PatientDetails = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const startCall = (mode) => {
+    const latestNote = patient?.patientProfile?.notes?.[0];
+    const consultationId = latestNote?.id;
+
+    if (!consultationId) {
+      toast.error('Create a consultation note first to start a call');
+      return;
+    }
+
+    const socket = getSocket();
+    const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    setActiveCall({
+      callId,
+      consultationId,
+      mode,
+      peerUserId: patient.id,
+      peerUserName: patient.name,
+      isInitiator: true,
+    });
+
+    socket.emit('consultation_call_invite', {
+      callId,
+      consultationId,
+      targetUserId: patient.id,
+      mode,
+      caller: {
+        id: doctorUser.id,
+        name: `Dr. ${doctorUser.name}`,
+      },
+    });
+  };
+
+  const acceptIncomingCall = () => {
+    if (!incomingCall) return;
+    const socket = getSocket();
+    socket.emit('consultation_call_accept', {
+      callId: incomingCall.callId,
+      consultationId: incomingCall.consultationId,
+      targetUserId: incomingCall.peerUserId,
+      mode: incomingCall.mode,
+      acceptedBy: {
+        id: doctorUser.id,
+        name: `Dr. ${doctorUser.name}`,
+      },
+    });
+    setActiveCall(incomingCall);
+    setIncomingCall(null);
+  };
+
+  const rejectIncomingCall = () => {
+    if (!incomingCall) return;
+    const socket = getSocket();
+    socket.emit('consultation_call_reject', {
+      callId: incomingCall.callId,
+      consultationId: incomingCall.consultationId,
+      targetUserId: incomingCall.peerUserId,
+      rejectedBy: {
+        id: doctorUser.id,
+        name: `Dr. ${doctorUser.name}`,
+      },
+    });
+    setIncomingCall(null);
+  };
+
+  const closeCall = (notifyPeer = true) => {
+    if (notifyPeer && activeCall) {
+      const socket = getSocket();
+      socket.emit('consultation_call_end', {
+        callId: activeCall.callId,
+        consultationId: activeCall.consultationId,
+        targetUserId: activeCall.peerUserId,
+      });
+    }
+    setActiveCall(null);
   };
 
   if (loading) {
@@ -151,6 +269,20 @@ const PatientDetails = () => {
                   title="Chat with Patient"
                 >
                   <MessageSquare className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => startCall('voice')}
+                  className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                  title="Voice Call Patient"
+                >
+                  <Phone className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => startCall('video')}
+                  className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+                  title="Video Call Patient"
+                >
+                  <Video className="w-5 h-5" />
                 </button>
               </div>
               <div className="flex flex-wrap gap-4 mt-2">
@@ -361,6 +493,29 @@ const PatientDetails = () => {
           otherUserId={activeChat.id} 
           otherUserName={activeChat.name} 
           onClose={() => setActiveChat(null)} 
+        />
+      )}
+      {incomingCall && (
+        <div className="fixed top-6 right-6 z-[65] bg-white border border-slate-200 shadow-2xl rounded-[2rem] p-6 w-full max-w-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Incoming {incomingCall.mode === 'video' ? 'video' : 'voice'} consultation call
+          </p>
+          <h3 className="mt-2 text-2xl font-black text-slate-900">{incomingCall.peerUserName}</h3>
+          <div className="mt-5 flex gap-3">
+            <button onClick={acceptIncomingCall} className="flex-1 py-3 rounded-2xl bg-emerald-600 text-white font-bold">
+              Accept
+            </button>
+            <button onClick={rejectIncomingCall} className="flex-1 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold">
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
+      {activeCall && (
+        <ConsultationCallModal
+          call={activeCall}
+          socket={getSocket()}
+          onClose={closeCall}
         />
       )}
 

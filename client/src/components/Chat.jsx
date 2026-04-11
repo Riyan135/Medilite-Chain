@@ -2,11 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, X, Minimize2, Maximize2, MessageSquare } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
-import { io } from 'socket.io-client';
+import { getSocket } from '../lib/socket';
 
-const socket = io(import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000');
-
-const Chat = ({ otherUserId, otherUserName, onClose }) => {
+const Chat = ({ otherUserId, otherUserName, consultationId = null, onClose }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -19,6 +17,8 @@ const Chat = ({ otherUserId, otherUserName, onClose }) => {
 
   useEffect(() => {
     if (user?.id && otherUserId) {
+      const socket = getSocket();
+
       fetchMessages();
       
       // Join socket room
@@ -61,9 +61,11 @@ const Chat = ({ otherUserId, otherUserName, onClose }) => {
     if (!newMessage.trim()) return;
 
     try {
+      const socket = getSocket();
       const res = await api.post('/chat', {
         senderId: user.id,
         receiverId: otherUserId,
+        consultationId,
         content: newMessage
       });
       
@@ -109,7 +111,9 @@ const Chat = ({ otherUserId, otherUserName, onClose }) => {
           </div>
           <div>
             <p className="font-bold text-sm">{otherUserName}</p>
-            <p className="text-[10px] text-white/70 uppercase tracking-widest font-bold">Online</p>
+            <p className="text-[10px] text-white/70 uppercase tracking-widest font-bold">
+              {consultationId ? 'Consultation Chat' : 'Online'}
+            </p>
           </div>
         </div>
         <div className="flex gap-2">

@@ -3,8 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import mongoose from 'mongoose';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 import authRoutes from './routes/auth.js';
 import recordRoutes from './routes/records.js';
@@ -18,34 +19,36 @@ import symptomRoutes from './routes/symptoms.js';
 import emergencyRoutes from './routes/emergency.js';
 import familyRoutes from './routes/family.js';
 import appointmentRoutes from './routes/appointment.js';
-
-import { startReminderService } from './services/reminderService.js';
-import { startInventoryService } from './services/inventoryService.js';
+import consultationRoutes from './routes/consultations.js';
+import medicineRoutes from './routes/medicines.js';
+import stockRoutes from './routes/stock.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
+import { connectMongo } from './lib/mongoose.js';
+import { ensureAdminUser } from './services/bootstrapUsers.js';
+import { startReminderScheduler } from './services/reminderScheduler.js';
 
-import { createServer } from 'http';
-import { Server } from 'socket.io';
-
-const prisma = new PrismaClient();
 const app = express();
 const httpServer = createServer(app);
-
 const PORT = process.env.PORT || 5000;
+const LOG_LEVEL = process.env.LOG_LEVEL || 'minimal';
+const isVerboseLogging = LOG_LEVEL === 'debug' || LOG_LEVEL === 'verbose';
 
-/* ================= SOCKET ================= */
 const io = new Server(httpServer, {
   cors: {
     origin: [
       process.env.FRONTEND_URL || 'http://localhost:5173',
       'http://localhost:5174',
-      'http://localhost:5175'
+      'http://localhost:5175',
     ],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
+app.set('io', io);
 
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  if (isVerboseLogging) {
+    console.log('User connected:', socket.id);
+  }
 
   socket.on('join_room', (data) => {
     socket.join(data.room);
@@ -55,53 +58,85 @@ io.on('connection', (socket) => {
     io.to(data.room).emit('receive_message', data);
   });
 
-  // Appointment Signaling
   socket.on('new_appointment_request', (data) => {
-    // data should contain { doctorId, appointment }
     io.to(data.doctorId).emit('incoming_appointment', data.appointment);
   });
 
   socket.on('appointment_status_update', (data) => {
-    // data should contain { patientUserId, appointment }
     io.to(data.patientUserId).emit('appointment_status_changed', data.appointment);
   });
 
+  socket.on('consultation_call_invite', (data) => {
+    io.to(data.targetUserId).emit('consultation_call_invite', data);
+  });
+
+  socket.on('consultation_call_accept', (data) => {
+    io.to(data.targetUserId).emit('consultation_call_accept', data);
+  });
+
+  socket.on('consultation_call_reject', (data) => {
+    io.to(data.targetUserId).emit('consultation_call_reject', data);
+  });
+
+  socket.on('consultation_call_signal', (data) => {
+    io.to(data.targetUserId).emit('consultation_call_signal', data);
+  });
+
+  socket.on('consultation_call_end', (data) => {
+    io.to(data.targetUserId).emit('consultation_call_end', data);
+  });
+
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    if (isVerboseLogging) {
+      console.log('User disconnected:', socket.id);
+    }
   });
 });
 
-/* ================= MIDDLEWARE ================= */
 app.use(helmet());
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
 
-    const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173'];
-    const isLocalhost = origin.startsWith('http://localhost:');
+      const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173'];
+      const isLocalhost = origin.startsWith('http://localhost:');
 
-    if (allowedOrigins.includes(origin) || isLocalhost) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+      if (allowedOrigins.includes(origin) || isLocalhost) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 
-app.use(morgan('dev'));
+app.use(
+  morgan(isVerboseLogging ? 'dev' : 'tiny', {
+    skip: (req, res) => {
+      if (isVerboseLogging) {
+        return false;
+      }
+
+      return res.statusCode < 400 && req.path !== '/health';
+    },
+  })
+);
 app.use(express.json());
 
-/* ================= PUBLIC ROUTES ================= */
-app.use('/api/auth', authRoutes);
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'MediLite API is running',
+  });
+});
 
-/* ✅ MAKE THIS PUBLIC (FIX) */
+app.use('/api/auth', authRoutes);
 app.use('/api/symptoms', symptomRoutes);
 
-/* ================= PROTECTED ROUTES ================= */
 app.use(authMiddleware);
-
 app.use('/api/records', recordRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/doctors', doctorRoutes);
@@ -112,36 +147,37 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/emergency', emergencyRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/consultations', consultationRoutes);
+app.use('/api/medicines', medicineRoutes);
+app.use('/api/stock', stockRoutes);
 
-/* ================= HEALTH CHECK ================= */
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'MediLite API is running'
-  });
-});
-
-/* ================= DEBUG 404 ================= */
 app.use((req, res) => {
-  console.log('❌ 404:', req.method, req.url);
+  console.warn('404:', req.method, req.url);
   res.status(404).json({ error: 'Route not found' });
 });
 
-/* ================= ERROR HANDLING ================= */
 app.use((err, req, res, next) => {
-  console.error("🔥 ERROR:", err.stack); // better logging
+  console.error('ERROR:', err.stack);
   res.status(500).json({
-    error: err.message || "Something went wrong",
+    error: err.message || 'Something went wrong',
   });
 });
 
-/* ================= START SERVER ================= */
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+connectMongo()
+  .then(async () => {
+    await ensureAdminUser();
+    startReminderScheduler();
+    console.log('MongoDB connected');
+    httpServer.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('MongoDB connection failed:', error);
+    process.exit(1);
+  });
 
-/* ================= CLEANUP ================= */
 process.on('SIGTERM', async () => {
-  await prisma.$disconnect();
+  await mongoose.disconnect();
   process.exit(0);
 });

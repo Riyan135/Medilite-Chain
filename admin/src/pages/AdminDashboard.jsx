@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { Users, UserCheck, ShieldAlert, BarChart3, ArrowRight, Trash2, ShieldCheck, MessageSquare, Pill, User, Calendar, ClipboardList } from 'lucide-react';
+import AdminTopbar from '../components/AdminTopbar';
+import { Users, UserCheck, ShieldAlert, BarChart3, ArrowRight, Trash2, ShieldCheck, MessageSquare, Pill, User, Calendar, ClipboardList, Phone, Video, Package2, AlertTriangle } from 'lucide-react';
 import api from '../api/api';
 import Chat from '../components/Chat';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import { getSocket } from '../lib/socket';
+import ConsultationCallModal from '../components/ConsultationCallModal';
 
 const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
   const themes = {
@@ -58,16 +62,99 @@ const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
 };
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeChat, setActiveChat] = useState(null);
   const [showAssignModal, setShowAssignModal] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [activeCall, setActiveCall] = useState(null);
+
+  const patientTrend = patients
+    .reduce((acc, patient) => {
+      const key = patient.lastPortalLoginAt
+        ? new Date(patient.lastPortalLoginAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+        : 'No Login';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+  const patientTrendData = Object.entries(patientTrend)
+    .filter(([label]) => label !== 'No Login')
+    .slice(-6)
+    .map(([label, count]) => ({ label, count }));
+  const maxTrend = Math.max(...patientTrendData.map((item) => item.count), 1);
+
+  const showAppointmentToast = (appointment) => {
+    toast((t) => (
+      <div className="flex flex-col gap-3 min-w-[250px]">
+        <p className="font-bold text-slate-800 text-base">New Appointment Request</p>
+        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+          <p className="text-sm text-slate-700 font-medium">Patient: {appointment.patient?.user?.name || "Unknown Patient"}</p>
+          <p className="text-xs text-slate-500 mt-1">{appointment.date} @ {appointment.time}</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+            onClick={() => {
+              handleAppointmentStatus(appointment, 'ACCEPTED');
+              toast.dismiss(t.id);
+            }}
+          >Accept</button>
+          <button
+            className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+            onClick={() => {
+              handleAppointmentStatus(appointment, 'REJECTED');
+              toast.dismiss(t.id);
+            }}
+          >Decline</button>
+        </div>
+      </div>
+    ), { duration: 60000, position: 'top-center' });
+  };
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    let socket;
+
+    if (user?.role === 'DOCTOR' && user?.id) {
+      socket = getSocket();
+      socket.emit('join_room', { room: user.id });
+
+      fetchPendingAppointments();
+
+      socket.on('incoming_appointment', (appointment) => {
+        showAppointmentToast(appointment);
+      });
+      socket.on('consultation_call_invite', (data) => {
+        setIncomingCall({
+          callId: data.callId,
+          consultationId: data.consultationId,
+          mode: data.mode,
+          peerUserId: data.caller.id,
+          peerUserName: data.caller.name,
+          isInitiator: false,
+        });
+      });
+      socket.on('consultation_call_end', (data) => {
+        if (activeCall?.callId === data.callId) {
+          setActiveCall(null);
+          toast('Call ended');
+        }
+      });
+    }
+
+    return () => {
+      socket?.off('incoming_appointment');
+      socket?.off('consultation_call_invite');
+      socket?.off('consultation_call_end');
+    };
+  }, [user?.id, user?.role, activeCall?.callId]);
 
   const fetchData = async () => {
     try {
@@ -98,51 +185,142 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAppointmentStatus = async (appointment, status) => {
+    try {
+      await api.patch(`/appointments/${appointment.id}/status`, { status });
+
+      if (status === 'ACCEPTED') toast.success('Appointment confirmed and patient notified');
+      else toast.success('Appointment declined and patient notified');
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast.error('Failed to update appointment status');
+    }
+  };
+
+  const fetchPendingAppointments = async () => {
+    try {
+      const response = await api.get('/appointments/pending');
+      response.data.forEach(showAppointmentToast);
+    } catch (error) {
+      console.error('Error fetching pending appointments:', error);
+    }
+  };
+
+  const acceptIncomingCall = () => {
+    if (!incomingCall) return;
+    const socket = getSocket();
+    socket.emit('consultation_call_accept', {
+      callId: incomingCall.callId,
+      consultationId: incomingCall.consultationId,
+      targetUserId: incomingCall.peerUserId,
+      mode: incomingCall.mode,
+      acceptedBy: {
+        id: user.id,
+        name: `Dr. ${user.name}`,
+      },
+    });
+    setActiveCall(incomingCall);
+    setIncomingCall(null);
+  };
+
+  const rejectIncomingCall = () => {
+    if (!incomingCall) return;
+    const socket = getSocket();
+    socket.emit('consultation_call_reject', {
+      callId: incomingCall.callId,
+      consultationId: incomingCall.consultationId,
+      targetUserId: incomingCall.peerUserId,
+      rejectedBy: {
+        id: user.id,
+        name: `Dr. ${user.name}`,
+      },
+    });
+    setIncomingCall(null);
+  };
+
+  const closeCall = (notifyPeer = true) => {
+    if (notifyPeer && activeCall) {
+      const socket = getSocket();
+      socket.emit('consultation_call_end', {
+        callId: activeCall.callId,
+        consultationId: activeCall.consultationId,
+        targetUserId: activeCall.peerUserId,
+      });
+    }
+    setActiveCall(null);
+  };
+
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f0f4f8]">
       <Sidebar role="admin" />
-      <main className="flex-1 overflow-y-auto p-8">
-        <header className="mb-10">
-          <h1 className="text-3xl font-extrabold text-slate-900">Admin Command Center</h1>
-          <p className="text-slate-500 mt-1">Monitor system health and manage medical professionals.</p>
-        </header>
+      <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
+        <AdminTopbar
+          title="Admin Command Center"
+          subtitle="Monitor system health, track appointments, and manage medicine stock from one workspace."
+        />
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 animate-slide-up-fade">
           <StatCard 
             title="Total Patients" 
-            value={loading ? "..." : (patients.length || "0")} 
-            subtitle="+5% from last week" 
+            value={loading ? "..." : (stats?.loggedInPatients || "0")} 
+            subtitle="Patients who logged into the portal" 
             icon={Users} 
             theme="blue"
           />
           <StatCard 
             title="Appointments Today" 
-            value="32" 
-            subtitle="4 emergencies" 
+            value={loading ? "..." : (stats?.appointmentsToday || "0")} 
+            subtitle={`${stats?.pendingAppointments || 0} pending requests`} 
             icon={Calendar} 
             theme="emerald"
           />
           <StatCard 
-            title="Consultations" 
-            value="850" 
-            subtitle="This month" 
+            title="Total Consultations" 
+            value={loading ? "..." : (stats?.totalConsultations || "0")} 
+            subtitle={`${stats?.ongoingConsultations || 0} ongoing`} 
             icon={ClipboardList} 
             theme="cyan"
           />
           <StatCard 
-            title="Prescriptions" 
-            value="4,120" 
-            subtitle="Overall generated" 
+            title="Completed Consultations" 
+            value={loading ? "..." : (stats?.completedConsultations || "0")} 
+            subtitle={`${stats?.acceptedAppointments || 0} accepted appointments`} 
             icon={Pill} 
             theme="indigo"
           />
         </section>
 
-        <div className="grid grid-cols-1 gap-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <StatCard
+            title="Total Medicines"
+            value={loading ? "..." : (stats?.totalMedicines || "0")}
+            subtitle="Inventory items in stock"
+            icon={Package2}
+            theme="blue"
+          />
+          <StatCard
+            title="Low Stock Alerts"
+            value={loading ? "..." : (stats?.lowStockMedicines || "0")}
+            subtitle="Below threshold"
+            icon={AlertTriangle}
+            theme="emerald"
+          />
+          <StatCard
+            title="Expired Medicines"
+            value={loading ? "..." : (stats?.expiredMedicines || "0")}
+            subtitle={`${stats?.nearExpiryMedicines || 0} near expiry`}
+            icon={ShieldAlert}
+            theme="indigo"
+          />
+        </section>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr] gap-8">
           <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-50 flex justify-between items-center">
               <h3 className="text-xl font-bold text-slate-800">Patient Directory</h3>
-              <p className="text-sm text-slate-400 font-medium">{patients.length} Registered Patients</p>
+              <p className="text-sm text-slate-400 font-medium">
+                {stats?.loggedInPatients || 0} Logged In Patients
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -203,6 +381,7 @@ const AdminDashboard = () => {
                           </button>
                           <button 
                             className="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+                            onClick={() => window.location.href = `/patient/${patient.id}`}
                             title="View Records"
                           >
                             <ArrowRight className="w-5 h-5" />
@@ -215,6 +394,43 @@ const AdminDashboard = () => {
               </table>
             </div>
           </section>
+
+          <aside className="space-y-8">
+            <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+              <h3 className="text-xl font-black text-slate-900">Patients Per Day</h3>
+              <p className="mt-1 text-sm text-slate-500">Recent login activity across patient accounts.</p>
+              <div className="mt-6 space-y-4">
+                {patientTrendData.length === 0 ? (
+                  <p className="text-sm text-slate-400">Patient activity will appear here once patients log in.</p>
+                ) : (
+                  patientTrendData.map((item) => (
+                    <div key={item.label}>
+                      <div className="flex items-center justify-between text-sm font-semibold text-slate-600">
+                        <span>{item.label}</span>
+                        <span>{item.count}</span>
+                      </div>
+                      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#1d4ed8] via-sky-500 to-[#facc15]"
+                          style={{ width: `${(item.count / maxTrend) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+              <h3 className="text-xl font-black text-slate-900">Quick System Flags</h3>
+              <div className="mt-6 space-y-4">
+                <FlagRow label="Pending Appointments" value={stats?.pendingAppointments || 0} tone="yellow" />
+                <FlagRow label="Ongoing Consultations" value={stats?.ongoingConsultations || 0} tone="blue" />
+                <FlagRow label="Low Stock Medicines" value={stats?.lowStockMedicines || 0} tone="red" />
+                <FlagRow label="Expired Medicines" value={stats?.expiredMedicines || 0} tone="red" />
+              </div>
+            </section>
+          </aside>
         </div>
       </main>
 
@@ -235,7 +451,7 @@ const AdminDashboard = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 text-sm">Dr. {doc.name}</h4>
-                    <p className="text-xs text-slate-400">{doc.email}</p>
+                    <p className="text-xs text-slate-400">{doc.email || doc.phone || 'Available doctor'}</p>
                   </div>
                 </button>
               ))}
@@ -257,6 +473,44 @@ const AdminDashboard = () => {
           onClose={() => setActiveChat(null)} 
         />
       )}
+      {incomingCall && (
+        <div className="fixed top-6 right-6 z-[65] bg-white border border-slate-200 shadow-2xl rounded-[2rem] p-6 w-full max-w-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Incoming {incomingCall.mode === 'video' ? 'video' : 'voice'} consultation call
+          </p>
+          <h3 className="mt-2 text-2xl font-black text-slate-900">{incomingCall.peerUserName}</h3>
+          <div className="mt-5 flex gap-3">
+            <button onClick={acceptIncomingCall} className="flex-1 py-3 rounded-2xl bg-emerald-600 text-white font-bold">
+              Accept
+            </button>
+            <button onClick={rejectIncomingCall} className="flex-1 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold">
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
+      {activeCall && (
+        <ConsultationCallModal
+          call={activeCall}
+          socket={getSocket()}
+          onClose={closeCall}
+        />
+      )}
+    </div>
+  );
+};
+
+const FlagRow = ({ label, value, tone }) => {
+  const styles = {
+    blue: 'bg-blue-50 text-[#1d4ed8]',
+    yellow: 'bg-yellow-50 text-[#b45309]',
+    red: 'bg-red-50 text-[#dc2626]',
+  };
+
+  return (
+    <div className="flex items-center justify-between rounded-2xl bg-[#f0f4f8] px-4 py-3">
+      <span className="font-semibold text-slate-600">{label}</span>
+      <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${styles[tone]}`}>{value}</span>
     </div>
   );
 };

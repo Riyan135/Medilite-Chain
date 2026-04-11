@@ -6,16 +6,19 @@ import { Toaster } from 'react-hot-toast';
 // Pages
 import AutoLoginPage from './pages/SignInPage';
 import AdminDashboard from './pages/AdminDashboard';
+import Appointments from './pages/Appointments';
+import Medicines from './pages/Medicines';
 import PatientDetails from './pages/PatientDetails';
+import Profile from './pages/Profile';
 import Records from './pages/Records';
+import Settings from './pages/Settings';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== 'ADMIN') {
-    // If somehow a non-admin gets here, logout and redirect
+  if (!['ADMIN', 'DOCTOR'].includes(user.role)) {
     return <Navigate to="/login" />;
   }
   
@@ -34,6 +37,38 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/appointments" 
+            element={
+              <ProtectedRoute>
+                <Appointments />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/medicines" 
+            element={
+              <ProtectedRoute>
+                <Medicines />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/settings" 
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             } 
           />

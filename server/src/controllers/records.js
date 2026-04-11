@@ -1,16 +1,27 @@
-import pkg from '@prisma/client';
+import QRCode from 'qrcode';
+
+import MedicalRecord from '../models/MedicalRecord.js';
+import PatientProfile from '../models/PatientProfile.js';
+import User from '../models/User.js';
 import { summarizeReport, generateHealthOverview } from '../services/aiService.js';
 
-import QRCode from 'qrcode';
-const { PrismaClient } = pkg;
+const withDoctorName = async (record) => {
+  const result = record.toObject ? record.toObject() : { ...record };
+  result.id = result._id.toString();
 
-const prisma = new PrismaClient();
+  if (result.doctorId) {
+    const doctor = await User.findById(result.doctorId).select('name').lean();
+    result.doctor = doctor ? { name: doctor.name } : null;
+  } else {
+    result.doctor = null;
+  }
 
+  return result;
+};
 
 export const uploadRecord = async (req, res) => {
   const { title, type, description, doctorId } = req.body;
   const patientId = req.body.patientId || req.user.id;
-
   const fileUrl = req.file?.path;
 
   if (!fileUrl) {
@@ -18,29 +29,23 @@ export const uploadRecord = async (req, res) => {
   }
 
   try {
-    // First, find the user by id to get their PatientProfile
-    const user = await prisma.user.findUnique({
-      where: { id: patientId },
-      include: { patientProfile: true }
-    });
+    const patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
 
-
-    if (!user || !user.patientProfile) {
+    if (!patientProfile) {
       return res.status(404).json({ error: 'Patient profile not found' });
     }
-    const records = await prisma.record.findMany({
-      where: { patientId: userId }, // or req.user.id
-      include: {
-        patient: {
-          select: {
-            name: true
-          }
-        }
-      }
+
+    const record = await MedicalRecord.create({
+      patientUserId: patientId,
+      doctorId: doctorId || null,
+      title: title?.trim() || 'Untitled Record',
+      type: type || 'REPORT',
+      description: description?.trim() || null,
+      fileUrl,
+      date: new Date(),
     });
 
-
-    res.status(201).json(record);
+    res.status(201).json(await withDoctorName(record));
   } catch (error) {
     console.error('Error creating medical record:', error);
     res.status(500).json({ error: 'Failed to create medical record' });
@@ -50,29 +55,17 @@ export const uploadRecord = async (req, res) => {
 export const getPatientRecords = async (req, res) => {
   const patientId = req.params.patientId || req.user.id;
 
-
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: patientId },
-      include: { patientProfile: true }
-    });
+    const patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
 
-
-    if (!user || !user.patientProfile) {
+    if (!patientProfile) {
       return res.status(404).json({ error: 'Patient profile not found' });
     }
 
-    const records = await prisma.medicalRecord.findMany({
-      where: { patientId: user.patientProfile.id },
-      orderBy: { date: 'desc' },
-      include: {
-        doctor: {
-          select: { name: true }
-        }
-      }
-    });
+    const records = await MedicalRecord.find({ patientUserId: patientId }).sort({ date: -1 }).lean();
+    const hydratedRecords = await Promise.all(records.map((record) => withDoctorName(record)));
 
-    res.status(200).json(records);
+    res.status(200).json(hydratedRecords);
   } catch (error) {
     console.error('Error fetching records:', error);
     res.status(500).json({ error: 'Failed to fetch medical records' });
@@ -83,9 +76,11 @@ export const deleteRecord = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await prisma.medicalRecord.delete({
-      where: { id }
-    });
+    const deletedRecord = await MedicalRecord.findByIdAndDelete(id).lean();
+    if (!deletedRecord) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
     res.status(200).json({ message: 'Record deleted successfully' });
   } catch (error) {
     console.error('Error deleting record:', error);
@@ -98,23 +93,17 @@ export const summarizeRecord = async (req, res) => {
   const { language } = req.body;
 
   try {
-    const record = await prisma.medicalRecord.findUnique({
-      where: { id: id }
-    });
+    const record = await MedicalRecord.findById(id);
 
     if (!record) {
       return res.status(404).json({ error: 'Record not found' });
     }
 
     const summary = await summarizeReport(record.fileUrl, record.type, language);
+    record.summary = summary;
+    await record.save();
 
-    // Update record with the new summary
-    const updatedRecord = await prisma.medicalRecord.update({
-      where: { id: id },
-      data: { summary: summary }
-    });
-
-    res.status(200).json(updatedRecord);
+    res.status(200).json(await withDoctorName(record));
   } catch (error) {
     console.error('Error summarizing record:', error);
     res.status(500).json({ error: 'Failed to summarize record' });
@@ -125,19 +114,16 @@ export const generateRecordQR = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const record = await prisma.medicalRecord.findUnique({
-      where: { id: id }
-    });
+    const record = await MedicalRecord.findById(id).lean();
 
     if (!record) {
       return res.status(404).json({ error: 'Record not found' });
     }
 
-    // In a real app, this would be a signed URL or a temporary token
     const qrData = JSON.stringify({
-      recordId: record.id,
-      patientId: record.patientId,
-      timestamp: Date.now()
+      recordId: record._id.toString(),
+      patientId: record.patientUserId,
+      timestamp: Date.now(),
     });
 
     const qrCodeImage = await QRCode.toDataURL(qrData);
@@ -153,22 +139,8 @@ export const getHealthOverview = async (req, res) => {
   const { language } = req.body;
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        patientProfile: {
-          include: {
-            records: true
-          }
-        }
-      }
-    });
+    const records = await MedicalRecord.find({ patientUserId: userId }).lean();
 
-    if (!user || !user.patientProfile) {
-      return res.status(404).json({ error: 'Patient profile not found' });
-    }
-
-    const records = user.patientProfile.records;
     if (records.length === 0) {
       return res.status(400).json({ error: 'No medical records found to summarize.' });
     }
@@ -180,5 +152,3 @@ export const getHealthOverview = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate health overview' });
   }
 };
-
-

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
+import AdminTopbar from '../components/AdminTopbar';
 import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -108,14 +109,14 @@ const Records = () => {
   });
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f0f4f8]">
       <Sidebar role="admin" />
-      <main className="flex-1 overflow-y-auto p-8">
-        <header className="flex justify-between items-center mb-10 flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Medical Records</h1>
-            <p className="text-slate-500 mt-1">Access and manage all your uploaded medical documents.</p>
-          </div>
+      <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
+        <div className="flex justify-between items-center mb-10 flex-wrap gap-4">
+          <AdminTopbar
+            title="Medical Records"
+            subtitle="Access records, generate summaries, and review patient documents in a cleaner workspace."
+          />
           <button
             onClick={handleGenerateOverview}
             disabled={generatingOverview || records.length === 0}
@@ -128,7 +129,7 @@ const Records = () => {
             )}
             Whole Picture Summary
           </button>
-        </header>
+        </div>
 
 
         <section className="bg-white p-6 rounded-3xl border border-slate-200 mb-8 flex flex-col md:flex-row gap-4">

@@ -1,8 +1,6 @@
 import jwt from 'jsonwebtoken';
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
-
-const prisma = new PrismaClient();
+import User from '../models/User.js';
+import PatientProfile from '../models/PatientProfile.js';
 
 export const authMiddleware = async (req, res, next) => {
   try {
@@ -14,21 +12,19 @@ export const authMiddleware = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_fallback_secret_for_dev_only');
 
-    // In this app, we might be using clerkId or a standard userId
-    // Let's check both if needed, but usually it's the id (uuid)
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      include: {
-        patientProfile: true
-      }
-    });
-
+    const user = await User.findById(decoded.id).lean();
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    // Insert user data into request object
-    req.user = user;
+    const patientProfile = await PatientProfile.findOne({ userId: user._id.toString() }).lean();
+
+    req.user = {
+      ...user,
+      id: user._id.toString(),
+      patientProfile,
+    };
+
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);

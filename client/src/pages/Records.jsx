@@ -1,10 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle, Share2 } from 'lucide-react';
+import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle, Share2, Sparkles, Languages, ShieldCheck } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
+const languageOptions = [
+  'English',
+  'Hindi',
+  'Kannada',
+  'Marathi',
+  'Tamil',
+  'Telugu',
+  'Urdu',
+  'Malayalam',
+  'Punjabi',
+];
 
 const Records = () => {
   const { user } = useAuth();
@@ -18,6 +29,7 @@ const Records = () => {
   const [activeSummary, setActiveSummary] = useState(null);
   const [activeRecordId, setActiveRecordId] = useState(null);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [activeQR, setActiveQR] = useState(null);
   const [generatingOverview, setGeneratingOverview] = useState(false);
   const [showOverviewModal, setShowOverviewModal] = useState(false);
   const [healthOverview, setHealthOverview] = useState(null);
@@ -108,6 +120,8 @@ const Records = () => {
     const matchesFilter = filterType === 'ALL' || record.type === filterType;
     return matchesSearch && matchesFilter;
   });
+  const summarizedCount = records.filter((record) => record.summary).length;
+  const typeCount = new Set(records.map((record) => record.type)).size;
 
   const handleDownload = async (fileUrl, title) => {
     try {
@@ -146,14 +160,23 @@ const Records = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-400/20 to-indigo-400/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float pointer-events-none z-0"></div>
+    <div className="flex h-screen bg-slate-50 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900 records-page-shell">
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-400/20 to-indigo-400/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float"></div>
+        <div className="absolute bottom-[-12%] left-[-10%] w-[460px] h-[460px] bg-gradient-to-tr from-cyan-300/15 via-sky-300/12 to-transparent rounded-full blur-[120px] animate-[drift_18s_ease-in-out_infinite]"></div>
+        <div className="absolute top-[18%] left-[16%] size-20 rounded-full border border-white/40 bg-white/20 animate-[soft-spin_22s_linear_infinite]"></div>
+        <div className="absolute bottom-[16%] right-[14%] size-8 rounded-full bg-white/65 shadow-[0_0_30px_rgba(255,255,255,0.8)] animate-[bob_7s_ease-in-out_infinite]"></div>
+      </div>
       <Sidebar role="patient" />
       <main className="flex-1 overflow-y-auto p-8 relative z-10">
-        <header className="flex flex-col md:flex-row md:justify-between items-start md:items-end mb-12 gap-6">
+        <header className="flex flex-col xl:flex-row xl:justify-between items-start xl:items-end mb-12 gap-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Medical Records</h1>
-            <p className="text-lg text-slate-500 mt-2 font-medium">Access and manage all your uploaded medical documents securely.</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-blue-700 shadow-sm backdrop-blur-xl animate-slide-up-fade">
+              <Sparkles className="h-4 w-4" />
+              Secure Health Archive
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mt-5">Medical Records</h1>
+            <p className="text-lg text-slate-500 mt-3 font-medium max-w-2xl">Access, translate, summarize, and share your medical documents from one polished records workspace.</p>
           </div>
           <button
             onClick={handleGenerateOverview}
@@ -169,32 +192,87 @@ const Records = () => {
           </button>
         </header>
 
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+          <RecordsStatCard title="Total Records" value={records.length} subtitle="Uploaded medical files" icon={FileText} tone="blue" />
+          <RecordsStatCard title="AI Summaries" value={summarizedCount} subtitle="Records with insights" icon={BrainCircuit} tone="indigo" />
+          <RecordsStatCard title="Document Types" value={typeCount} subtitle="Reports, bills, tests, prescriptions" icon={ShieldCheck} tone="emerald" />
+        </section>
 
-        <section className="bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 mb-8 flex flex-col md:flex-row gap-4 animate-slide-up-fade">
-          <div className="flex-1 relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search records by title..."
-              className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        <section className="grid grid-cols-1 2xl:grid-cols-[1.35fr_0.65fr] gap-6 mb-8">
+          <div className="bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 flex flex-col md:flex-row gap-4 animate-slide-up-fade records-panel-lift">
+            <div className="flex-1 relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search records by title..."
+                className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-4">
+              <div className="relative group min-w-[220px]">
+                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                <select
+                  className="w-full pl-12 pr-8 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none appearance-none font-bold text-slate-700 transition-all cursor-pointer"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="ALL">All Document Types</option>
+                  <option value="REPORT">Medical Reports</option>
+                  <option value="BILL">Hospital Bills</option>
+                  <option value="PRESCRIPTION">Prescriptions</option>
+                  <option value="LAB_TEST">Lab Tests</option>
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="flex gap-4">
-            <div className="relative group min-w-[200px]">
-              <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+
+          <div className="bg-white/75 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 animate-slide-up-fade records-panel-lift" style={{ animationDelay: '0.08s' }}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Language Suggestion</p>
+                <h3 className="mt-3 text-2xl font-black text-slate-900">Choose Summary Language</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-500">Switch the summary and health overview output to the language you prefer before generating AI insights.</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <Languages className="h-6 w-6" />
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              {languageOptions.slice(0, 6).map((language) => (
+                <button
+                  key={language}
+                  type="button"
+                  onClick={() => setSelectedLanguage(language)}
+                  className={`rounded-full px-4 py-2 text-sm font-bold transition-all duration-300 ${
+                    selectedLanguage === language
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                      : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600'
+                  }`}
+                >
+                  {language}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 relative">
+              <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <Globe className="h-5 w-5" />
+              </div>
               <select
-                className="w-full pl-12 pr-8 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none appearance-none font-bold text-slate-700 transition-all cursor-pointer"
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 py-4 pl-12 pr-10 font-bold text-slate-700 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 appearance-none"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
               >
-                <option value="ALL">All Document Types</option>
-                <option value="REPORT">Medical Reports</option>
-                <option value="BILL">Hospital Bills</option>
-                <option value="PRESCRIPTION">Prescriptions</option>
-                <option value="LAB_TEST">Lab Tests</option>
+                {languageOptions.map((language) => (
+                  <option key={language} value={language}>{language}</option>
+                ))}
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+              </div>
             </div>
           </div>
         </section>
@@ -207,7 +285,7 @@ const Records = () => {
         ) : filteredRecords.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredRecords.map((record, idx) => (
-              <div key={record.id} className="bg-white/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-900/5 hover:-translate-y-2 transition-all duration-500 group animate-slide-up-fade" style={{ animationDelay: `${idx * 0.1}s` }}>
+              <div key={record.id} className="bg-white/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-900/5 hover:-translate-y-2 hover:scale-[1.01] transition-all duration-500 group animate-slide-up-fade records-panel-lift" style={{ animationDelay: `${idx * 0.1}s` }}>
                 <div className="flex justify-between items-start mb-6">
                   <div className="p-4 bg-white rounded-2xl group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-lg transition-all duration-300 text-blue-600 border border-slate-100">
                     <FileText className="w-7 h-7" />
@@ -297,7 +375,7 @@ const Records = () => {
           </div>
         ) : (
 
-          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+          <div className="text-center py-20 bg-white/80 backdrop-blur-xl rounded-3xl border-2 border-dashed border-slate-200 records-panel-lift">
             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8 text-slate-300" />
             </div>
@@ -566,6 +644,25 @@ const Records = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+const RecordsStatCard = ({ title, value, subtitle, icon: Icon, tone }) => {
+  const tones = {
+    blue: 'from-blue-500/14 to-sky-400/10 text-blue-600',
+    indigo: 'from-indigo-500/14 to-violet-400/10 text-indigo-600',
+    emerald: 'from-emerald-500/14 to-cyan-400/10 text-emerald-600',
+  };
+
+  return (
+    <div className="rounded-[2rem] border border-white/70 bg-white/70 backdrop-blur-xl p-6 shadow-xl shadow-slate-200/40 hover:-translate-y-1.5 transition-all duration-500 records-panel-lift">
+      <div className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${tones[tone]} shadow-sm`}>
+        <Icon className="h-6 w-6" />
+      </div>
+      <p className="mt-5 text-sm font-semibold text-slate-500">{title}</p>
+      <h2 className="mt-2 text-4xl font-extrabold text-slate-900">{value}</h2>
+      <p className="mt-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400">{subtitle}</p>
     </div>
   );
 };

@@ -16,6 +16,7 @@ import SymptomChecker from './pages/SymptomChecker';
 import EmergencySOS from './pages/EmergencySOS';
 import FamilyProfiles from './pages/FamilyProfiles';
 import AppointmentBooking from './pages/AppointmentBooking';
+import Consultations from './pages/Consultations';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -179,6 +180,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <AppointmentBooking />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/consultations"
+            element={
+              <PrivateRoute allowedRoles={['PATIENT']}>
+                <Consultations />
               </PrivateRoute>
             }
           />

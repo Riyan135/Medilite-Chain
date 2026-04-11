@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, UserCheck, CheckCircle2, FileText, AlertCircle, RefreshCcw } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
-import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
-
-const socket = io(import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000');
+import { getSocket } from '../lib/socket';
 
 const timeSlots = [
   '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', 
@@ -26,30 +24,64 @@ const AppointmentBooking = () => {
   const [currentAppointment, setCurrentAppointment] = useState(null);
 
   useEffect(() => {
+    let socket;
+
     fetchDoctors();
     
     if (user?.id) {
+      socket = getSocket();
       socket.emit('join_room', { room: user.id });
 
       socket.on('appointment_status_changed', (appointmentData) => {
         if (appointmentData.status === 'ACCEPTED') {
+          setCurrentAppointment(appointmentData);
           setStatus('success');
-          toast.success("Appointment Booked Successfully!");
+          toast.success("Your appointment is booked on the selected time and date.");
         } else if (appointmentData.status === 'REJECTED') {
+          setCurrentAppointment(appointmentData);
           setStatus('rejected');
-          toast.error("Appointment was declined by the doctor.");
+          toast.error("Your appointment was rejected. Please select a different time slot or date.");
         }
       });
     }
 
     return () => {
-      socket.off('appointment_status_changed');
+      socket?.off('appointment_status_changed');
     };
   }, [user]);
 
+  useEffect(() => {
+    if (status !== 'waiting' || !currentAppointment?.id) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(async () => {
+      try {
+        const response = await api.get(`/appointments/${currentAppointment.id}`);
+        const latestAppointment = response.data;
+
+        if (latestAppointment.status === 'ACCEPTED') {
+          setCurrentAppointment(latestAppointment);
+          setStatus('success');
+          toast.success('Your appointment is booked on the selected time and date.');
+        } else if (latestAppointment.status === 'REJECTED') {
+          setCurrentAppointment(latestAppointment);
+          setStatus('rejected');
+          toast.error('Your appointment was rejected. Please select a different time slot or date.');
+        }
+      } catch (error) {
+        console.error('Error checking appointment status:', error);
+      }
+    }, 3000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [status, currentAppointment?.id]);
+
   const fetchDoctors = async () => {
     try {
-      const res = await api.get('/appointments/doctors');
+      const res = await api.get('/auth/doctors');
       setDoctors(res.data);
     } catch (error) {
       console.error('Error fetching doctors:', error);
@@ -75,12 +107,6 @@ const AppointmentBooking = () => {
 
       const appointment = res.data;
       setCurrentAppointment(appointment);
-      
-      // Notify doctor via socket
-      socket.emit('new_appointment_request', {
-        doctorId: selectedDoctor,
-        appointment
-      });
 
       setStatus('waiting');
     } catch (error) {
@@ -129,7 +155,7 @@ const AppointmentBooking = () => {
             </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-3">Appointment Confirmed!</h2>
             <p className="text-slate-500 text-sm mb-6">
-              Your appointment with Dr. {currentAppointment?.doctor?.name} is scheduled for {date} at {time}.
+              Your appointment with Dr. {currentAppointment?.doctor?.name} is scheduled for {currentAppointment?.date || date} at {currentAppointment?.time || time}.
             </p>
             <button
               onClick={resetForm}
