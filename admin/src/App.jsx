@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
-// Pages
 import AutoLoginPage from './pages/SignInPage';
 import AdminDashboard from './pages/AdminDashboard';
 import Appointments from './pages/Appointments';
@@ -18,7 +17,7 @@ const ProtectedRoute = ({ children }) => {
   
   if (loading) return null;
   if (!user) return <Navigate to="/login" />;
-  if (!['ADMIN', 'DOCTOR'].includes(user.role)) {
+  if (user.role !== 'DOCTOR') {
     return <Navigate to="/login" />;
   }
   

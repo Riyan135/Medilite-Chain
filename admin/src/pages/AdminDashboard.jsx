@@ -255,8 +255,8 @@ const AdminDashboard = () => {
       <Sidebar role="admin" />
       <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
         <AdminTopbar
-          title="Admin Command Center"
-          subtitle="Monitor system health, track appointments, and manage medicine stock from one workspace."
+          title="Doctor Command Center"
+          subtitle="Review patient activity, manage appointments, and monitor medicine stock from one workspace."
         />
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 animate-slide-up-fade">
@@ -317,7 +317,9 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr] gap-8">
           <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-800">Patient Directory</h3>
+              <h3 className="text-xl font-bold text-slate-800">
+                Patient Overview
+              </h3>
               <p className="text-sm text-slate-400 font-medium">
                 {stats?.loggedInPatients || 0} Logged In Patients
               </p>

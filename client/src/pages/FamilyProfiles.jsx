@@ -1,10 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
-import { Users, UserPlus, ArrowRight, Activity, Calendar, FileText, Heart, X, Loader2 } from 'lucide-react';
+import { Users, UserPlus, ArrowRight, Calendar, Heart, X, Loader2, Droplets } from 'lucide-react';
+import toast from 'react-hot-toast';
+
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
-import toast from 'react-hot-toast';
+
+const BLOOD_GROUP_OPTIONS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+const calculateAgeFromDob = (dateOfBirth) => {
+  if (!dateOfBirth) {
+    return '';
+  }
+
+  const dob = new Date(dateOfBirth);
+  if (Number.isNaN(dob.getTime())) {
+    return '';
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+
+  return age >= 0 ? age : '';
+};
 
 const FamilyProfiles = () => {
   const { user } = useAuth();
@@ -13,13 +36,15 @@ const FamilyProfiles = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [adding, setAdding] = useState(false);
-
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
+    dateOfBirth: '',
     relation: '',
-    gender: 'Male'
+    gender: 'Male',
+    bloodGroup: '',
   });
+
+  const detectedAge = calculateAgeFromDob(formData.dateOfBirth);
 
   useEffect(() => {
     if (user?.id) {
@@ -47,10 +72,16 @@ const FamilyProfiles = () => {
       await api.post('/family', formData);
       toast.success('Family member added successfully!');
       setIsModalOpen(false);
-      setFormData({ name: '', age: '', relation: '', gender: 'Male' });
+      setFormData({
+        name: '',
+        dateOfBirth: '',
+        relation: '',
+        gender: 'Male',
+        bloodGroup: '',
+      });
       fetchMembers();
     } catch (error) {
-      toast.error('Failed to add family member');
+      toast.error(error.response?.data?.error || 'Failed to add family member');
     } finally {
       setAdding(false);
     }
@@ -58,147 +89,212 @@ const FamilyProfiles = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-blue-400/20 to-indigo-400/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-float pointer-events-none z-0"></div>
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-purple-400/20 to-blue-400/20 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/2 animate-float pointer-events-none z-0" style={{animationDelay: '3s'}}></div>
-      
-      <main className="max-w-7xl mx-auto p-8 md:p-12 relative z-10">
+      <div className="absolute top-0 right-0 h-[600px] w-[600px] translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-bl from-blue-400/20 to-indigo-400/20 blur-[120px] animate-float pointer-events-none z-0" />
+      <div className="absolute bottom-0 left-0 h-[600px] w-[600px] -translate-x-1/2 translate-y-1/2 rounded-full bg-gradient-to-tr from-purple-400/20 to-blue-400/20 blur-[120px] animate-float pointer-events-none z-0" style={{ animationDelay: '3s' }} />
+
+      <main className="relative z-10 mx-auto max-w-7xl p-8 md:p-12">
         <div className="mb-8">
-          <button 
+          <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center text-slate-500 hover:text-blue-600 transition-all duration-300 font-bold text-sm bg-white/70 backdrop-blur border border-slate-200/60 px-5 py-2.5 rounded-2xl shadow-sm hover:shadow-md hover:-translate-x-1 w-fit group"
+            className="group flex w-fit items-center rounded-2xl border border-slate-200/60 bg-white/70 px-5 py-2.5 text-sm font-bold text-slate-500 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-x-1 hover:text-blue-600 hover:shadow-md"
           >
-            <ArrowRight className="w-4 h-4 mr-2 rotate-180 group-hover:-translate-x-1 transition-transform" />
+            <ArrowRight className="mr-2 h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-1" />
             Back to Primary Portal
           </button>
         </div>
 
-        <header className="flex flex-col md:flex-row md:justify-between items-start md:items-end mb-16 gap-6">
+        <header className="mb-16 flex flex-col items-start gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl animate-slide-up-fade">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-4">Family Profiles</h1>
-            <p className="text-lg md:text-xl text-slate-500 font-medium leading-relaxed">Centrally manage and seamlessly switch between synchronized health dashboards for all your loved ones.</p>
+            <h1 className="mb-4 text-4xl font-black tracking-tight text-slate-900 md:text-5xl lg:text-6xl">Family Profiles</h1>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center px-8 py-4 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-600/25 hover:bg-blue-700 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-600/30 transition-all duration-300 animate-slide-up-fade w-full md:w-auto justify-center"
-            style={{animationDelay: '0.1s'}}
+            className="flex w-full items-center justify-center rounded-2xl bg-blue-600 px-8 py-4 font-black text-white shadow-xl shadow-blue-600/25 transition-all duration-300 animate-slide-up-fade hover:-translate-y-1 hover:bg-blue-700 hover:shadow-2xl hover:shadow-blue-600/30 md:w-auto"
+            style={{ animationDelay: '0.1s' }}
           >
-            <UserPlus className="w-6 h-6 mr-3" />
+            <UserPlus className="mr-3 h-6 w-6" />
             Add Family Member
           </button>
         </header>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32">
-            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-6" />
-            <p className="text-slate-500 font-bold text-lg animate-pulse">Initializing family network...</p>
+            <div className="mb-6 h-12 w-12 rounded-full border-4 border-blue-600/20 border-t-blue-600 animate-spin" />
+            <p className="text-lg font-bold text-slate-500 animate-pulse">Initializing family network...</p>
           </div>
         ) : members.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {members.map((member, idx) => (
-              <div key={member.id} className="bg-white/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-900/10 hover:-translate-y-2 transition-all duration-500 group flex flex-col items-start relative overflow-hidden animate-slide-up-fade" style={{ animationDelay: `${idx * 0.1}s` }}>
-                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-blue-400/10 to-indigo-400/10 rounded-bl-full -z-0 transition-transform group-hover:scale-125 duration-700" />
-                
-                <div className="flex justify-between w-full items-start mb-8 z-10">
-                  <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-colors duration-500 text-blue-600">
-                    <Heart className="w-8 h-8" />
+              <div
+                key={member.id}
+                className="group relative flex flex-col items-start overflow-hidden rounded-[2rem] border border-white/60 bg-white/70 p-8 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all duration-500 animate-slide-up-fade hover:-translate-y-2 hover:shadow-2xl hover:shadow-blue-900/10"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+              >
+                <div className="absolute right-0 top-0 -z-0 h-40 w-40 rounded-bl-full bg-gradient-to-br from-blue-400/10 to-indigo-400/10 transition-transform duration-700 group-hover:scale-125" />
+
+                <div className="z-10 mb-8 flex w-full items-start justify-between">
+                  <div className="rounded-2xl border border-slate-100 bg-white p-4 text-blue-600 shadow-sm transition-colors duration-500 group-hover:border-blue-600 group-hover:bg-blue-600 group-hover:text-white">
+                    <Heart className="h-8 w-8" />
                   </div>
-                  <span className="text-xs font-black text-blue-700 bg-blue-50 border border-blue-100/50 px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+                  <span className="rounded-full border border-blue-100/50 bg-blue-50 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-blue-700 shadow-sm">
                     {member.relationToParent}
                   </span>
                 </div>
 
-                <div className="z-10 w-full flex-1">
-                  <h3 className="text-3xl font-black text-slate-900 mb-4 tracking-tight group-hover:text-blue-600 transition-colors">{member.name}</h3>
-                  <div className="flex items-center gap-6 text-slate-500 mb-8 font-bold text-sm bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                    <span className="flex items-center gap-2"><Calendar className="w-5 h-5 text-blue-400" /> {member.age} Yrs</span>
-                    <div className="w-px h-6 bg-slate-200"></div>
-                    <span className="flex items-center gap-2"><Users className="w-5 h-5 text-indigo-400" /> {member.gender}</span>
+                <div className="z-10 flex w-full flex-1 flex-col">
+                  <h3 className="mb-4 text-3xl font-black tracking-tight text-slate-900 transition-colors group-hover:text-blue-600">{member.name}</h3>
+                  <div className="mb-5 flex items-center gap-6 rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-sm font-bold text-slate-500">
+                    <span className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-blue-400" />
+                      {member.age} Yrs
+                    </span>
+                    <div className="h-6 w-px bg-slate-200" />
+                    <span className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-indigo-400" />
+                      {member.gender}
+                    </span>
                   </div>
-                  
-                  <div className="flex gap-3 mt-auto w-full">
-                     <button
-                        onClick={() => navigate(`/dashboard/${member.id}`)}
-                        className="flex-1 flex items-center justify-center py-4 bg-slate-800 text-white rounded-2xl font-black hover:bg-slate-900 hover:shadow-lg shadow-slate-300 transition-all duration-300 group/btn"
-                      >
-                        Access Portal
-                        <ArrowRight className="w-5 h-5 ml-3 opacity-70 group-hover/btn:opacity-100 group-hover/btn:translate-x-1 transition-all" />
-                      </button>
+
+                  <div className="mb-8 inline-flex items-center rounded-full border border-rose-100 bg-rose-50 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-rose-700 shadow-sm">
+                    <Droplets className="mr-2 h-4 w-4" />
+                    Blood Group: {member.patientProfile?.bloodGroup || 'Not set'}
+                  </div>
+
+                  <div className="mt-auto flex w-full gap-3">
+                    <button
+                      onClick={() => navigate(`/dashboard/${member.id}`)}
+                      className="group/btn flex flex-1 items-center justify-center rounded-2xl bg-slate-800 py-4 font-black text-white shadow-slate-300 transition-all duration-300 hover:bg-slate-900 hover:shadow-lg"
+                    >
+                      Access Portal
+                      <ArrowRight className="ml-3 h-5 w-5 opacity-70 transition-all group-hover/btn:translate-x-1 group-hover/btn:opacity-100" />
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-24 bg-white/60 backdrop-blur-xl rounded-[3rem] border-2 border-dashed border-slate-200/80 shadow-sm mt-12 animate-slide-up-fade">
-            <div className="w-24 h-24 bg-blue-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner border border-blue-100/50">
-              <Users className="w-12 h-12 text-blue-500" />
+          <div className="mt-12 rounded-[3rem] border-2 border-dashed border-slate-200/80 bg-white/60 py-24 text-center shadow-sm backdrop-blur-xl animate-slide-up-fade">
+            <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-blue-100/50 bg-blue-50 shadow-inner">
+              <Users className="h-12 w-12 text-blue-500" />
             </div>
-            <h3 className="text-3xl font-black text-slate-800 mb-4 tracking-tight">No Family Profiles Yet</h3>
-            <p className="text-slate-500 text-lg max-w-md mx-auto mb-10 font-medium leading-relaxed">
-              Create dedicated privacy-first profiles for your children, parents, or spouse to securely manage their medical data.
-            </p>
+            <h3 className="mb-4 text-3xl font-black tracking-tight text-slate-800">No Family Profiles Yet</h3>
             <button
-               onClick={() => setIsModalOpen(true)}
-               className="inline-flex items-center px-10 py-5 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-600/25 hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300"
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center rounded-2xl bg-blue-600 px-10 py-5 font-black text-white shadow-xl shadow-blue-600/25 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-700"
             >
-              <UserPlus className="w-6 h-6 mr-3" />
+              <UserPlus className="mr-3 h-6 w-6" />
               Add First Member
             </button>
           </div>
         )}
       </main>
 
-      {/* Add Member Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-[100] p-4">
-          <div className="bg-white/95 backdrop-blur-xl w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden transform animate-in fade-in zoom-in duration-300 border border-white/60">
-            <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-md">
+          <div className="w-full max-w-lg overflow-hidden rounded-[2.5rem] border border-white/60 bg-white/95 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in duration-300">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-white px-10 py-8">
               <div className="flex items-center gap-4">
-                 <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100/50 shadow-inner">
-                   <UserPlus className="w-7 h-7 text-blue-600" />
-                 </div>
-                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Add Dependent</h3>
+                <div className="rounded-2xl border border-blue-100/50 bg-blue-50 p-3 shadow-inner">
+                  <UserPlus className="h-7 w-7 text-blue-600" />
+                </div>
+                <h3 className="text-2xl font-black tracking-tight text-slate-900">Add Dependent</h3>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all">
-                <X className="w-6 h-6" />
+              <button onClick={() => setIsModalOpen(false)} className="rounded-xl p-2.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-700">
+                <X className="h-6 w-6" />
               </button>
             </div>
-            <div className="p-10 space-y-6">
+
+            <div className="space-y-6 p-10">
               <form onSubmit={handleAddMember} className="space-y-6">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-widest">Full Name</label>
-                  <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900" placeholder="e.g. John Doe" />
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-700">Full Name</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                    placeholder="e.g. John Doe"
+                  />
                 </div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-widest">Age</label>
-                    <input required type="number" min="0" value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})} className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900" placeholder="Years" />
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-700">Date Of Birth</label>
+                    <input
+                      required
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-widest">Gender</label>
-                    <select value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})} className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900 appearance-none">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-700">Gender</label>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      className="w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                    >
                       <option>Male</option>
                       <option>Female</option>
                       <option>Other</option>
                     </select>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-700">Detected Age</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={detectedAge === '' ? '' : `${detectedAge} Years`}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-100/80 px-5 py-4 font-medium text-slate-900 outline-none"
+                      placeholder="Auto calculated"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-700">Blood Group</label>
+                    <input
+                      required
+                      list="blood-group-options"
+                      value={formData.bloodGroup}
+                      onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value.toUpperCase() })}
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                      placeholder="Select or type"
+                    />
+                    <datalist id="blood-group-options">
+                      {BLOOD_GROUP_OPTIONS.map((group) => (
+                        <option key={group} value={group} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-widest">Relation to You</label>
-                  <input required type="text" value={formData.relation} onChange={e => setFormData({...formData, relation: e.target.value})} className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900" placeholder="e.g. Son, Daughter, Parent" />
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-700">Relation to You</label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.relation}
+                    onChange={(e) => setFormData({ ...formData, relation: e.target.value })}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
+                    placeholder="e.g. Son, Daughter, Parent"
+                  />
                 </div>
 
-                <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100/50 mt-8 relative overflow-hidden shadow-inner">
-                  <div className="absolute right-0 top-0 bottom-0 w-2 bg-blue-500"></div>
-                  <p className="text-sm text-blue-900 font-semibold leading-relaxed w-11/12">
-                     This dependent will receive an identical dashboard scoped solely to their data, strictly governed by your primary authorization protocols.
-                  </p>
-                </div>
-
-                <div className="pt-8 flex gap-4">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100/80 text-slate-700 rounded-2xl font-black hover:bg-slate-200 transition-colors">Cancel Check</button>
-                  <button type="submit" disabled={adding} className="flex-[2] py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-600/20 hover:-translate-y-1 disabled:opacity-70 disabled:hover:-translate-y-0 disabled:shadow-none transition-all flex justify-center items-center">
-                    {adding ? <><Loader2 className="w-5 h-5 animate-spin mr-3" /> Initializing...</> : 'Initialize Profile Database'}
+                <div className="flex gap-4 pt-8">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-2xl bg-slate-100/80 py-4 font-black text-slate-700 transition-colors hover:bg-slate-200">
+                    Cancel Check
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={adding}
+                    className="flex flex-[2] items-center justify-center rounded-2xl bg-blue-600 py-4 font-black text-white shadow-xl shadow-blue-600/20 transition-all hover:-translate-y-1 hover:bg-blue-700 disabled:opacity-70 disabled:shadow-none disabled:hover:-translate-y-0"
+                  >
+                    {adding ? <><Loader2 className="mr-3 h-5 w-5 animate-spin" /> Initializing...</> : 'Initialize Profile Database'}
                   </button>
                 </div>
               </form>

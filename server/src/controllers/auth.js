@@ -45,6 +45,11 @@ const buildDoctorNameFromEmail = (email) =>
 const buildPortalToken = (user) =>
   jwt.sign({ id: user._id.toString() }, JWT_SECRET, { expiresIn: '7d' });
 
+const isConfiguredAdminEmail = (email) => {
+  const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  return Boolean(configuredAdminEmail && email === configuredAdminEmail);
+};
+
 export const register = async (req, res) => {
   const { email, password, name, phone, bloodGroup } = req.body;
 
@@ -195,7 +200,7 @@ export const requestOtp = async (req, res) => {
     res.status(200).json({ message: 'OTP sent successfully' });
   } catch (error) {
     console.error('OTP request error:', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
+    res.status(500).json({ error: error.message || 'Failed to send OTP' });
   }
 };
 
@@ -227,7 +232,7 @@ export const requestStaffOtp = async (req, res) => {
     res.status(200).json({ message: 'Staff OTP sent successfully' });
   } catch (error) {
     console.error('Staff OTP request error:', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
+    res.status(500).json({ error: error.message || 'Failed to send OTP' });
   }
 };
 
@@ -311,17 +316,23 @@ export const verifyStaffOtp = async (req, res) => {
     }
 
     let user = await User.findOne({ email: normalizedEmail });
+    const shouldBeAdmin = isConfiguredAdminEmail(normalizedEmail);
 
     if (!user) {
       user = await User.create({
         email: normalizedEmail,
         password: await bcrypt.hash(crypto.randomUUID(), 10),
         name: normalizedName,
-        role: 'DOCTOR',
+        role: shouldBeAdmin ? 'ADMIN' : 'DOCTOR',
         isVerified: true,
       });
-    } else if (user.role !== 'ADMIN') {
-      user.role = 'DOCTOR';
+    } else {
+      if (shouldBeAdmin) {
+        user.role = 'ADMIN';
+      } else if (user.role !== 'ADMIN') {
+        user.role = 'DOCTOR';
+      }
+
       user.isVerified = true;
       user.name = normalizedName;
       await user.save();

@@ -2,18 +2,28 @@ import nodemailer from 'nodemailer';
 
 let transporter;
 
+const hasMailConfig = () =>
+  Boolean(process.env.SMTP_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
 const getTransporter = () => {
   if (transporter) {
     return transporter;
   }
 
+  const smtpHost = process.env.SMTP_HOST;
+  const isGmailHost = smtpHost?.includes('gmail.com');
+
   transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
+    service: isGmailHost ? 'gmail' : undefined,
+    host: smtpHost,
     port: Number(process.env.SMTP_PORT || 587),
     secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 
@@ -21,6 +31,10 @@ const getTransporter = () => {
 };
 
 export const sendOtpEmail = async ({ to, name, otp }) => {
+  if (!hasMailConfig()) {
+    throw new Error('Email configuration is incomplete');
+  }
+
   const mailer = getTransporter();
 
   await mailer.sendMail({
@@ -40,6 +54,8 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
       </div>
     `,
   });
+
+  return { delivered: true, mode: 'smtp' };
 };
 
 export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, type = 'created' }) => {

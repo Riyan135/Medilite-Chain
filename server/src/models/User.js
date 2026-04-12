@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema(
     parentId: { type: String, default: null },
     relationToParent: { type: String, default: null },
     age: { type: Number, default: null },
+    dateOfBirth: { type: Date, default: null },
     gender: { type: String, default: null },
   },
   {

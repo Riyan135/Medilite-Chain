@@ -1,6 +1,24 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FileText, LogOut, User, ShieldCheck, Calendar, Package2, PanelLeftClose, PanelLeftOpen, Settings, X } from 'lucide-react';
+import {
+  ActivitySquare,
+  BarChart3,
+  BellRing,
+  FileBadge2,
+  HardDriveDownload,
+  LayoutDashboard,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PlugZap,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  User,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
@@ -15,10 +33,17 @@ const Sidebar = () => {
   };
 
   const links = [
-    { name: 'Doctor Console', icon: ShieldCheck, path: '/dashboard' },
-    { name: 'Appointments', icon: Calendar, path: '/appointments' },
-    { name: 'Patient Records', icon: FileText, path: '/records' },
-    { name: 'Stock', icon: Package2, path: '/medicines' },
+    { name: 'Overview', icon: LayoutDashboard, path: '/dashboard' },
+    { name: 'Access Control', icon: ShieldCheck, path: '/access-control' },
+    { name: 'User Governance', icon: UsersRound, path: '/user-governance' },
+    { name: 'Monitoring', icon: ActivitySquare, path: '/system-monitoring' },
+    { name: 'Audit Logs', icon: ScrollText, path: '/audit-logs' },
+    { name: 'Notifications', icon: BellRing, path: '/notifications' },
+    { name: 'Reports', icon: BarChart3, path: '/reports' },
+    { name: 'Integrations', icon: PlugZap, path: '/integrations' },
+    { name: 'Policies', icon: SlidersHorizontal, path: '/policies' },
+    { name: 'Backups', icon: HardDriveDownload, path: '/backups' },
+    { name: 'Content Center', icon: FileBadge2, path: '/content-center' },
     { name: 'Profile', icon: User, path: '/profile' },
     { name: 'Settings', icon: Settings, path: '/settings' },
   ];
@@ -41,7 +66,7 @@ const Sidebar = () => {
       >
         <div className="flex h-20 items-center justify-between border-b border-slate-100 px-5">
           <div className={`overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-            <h1 className="text-2xl font-bold text-[#1d4ed8]">MediLite</h1>
+            <h1 className="text-2xl font-bold text-[#1d4ed8]">System Admin</h1>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -87,7 +112,7 @@ const Sidebar = () => {
             {!collapsed && (
               <div className="ml-3 overflow-hidden">
                 <p className="truncate text-sm font-bold text-slate-900">{user?.name || 'User'}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{user?.role?.toLowerCase()} account</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">platform governance</p>
               </div>
             )}
           </div>

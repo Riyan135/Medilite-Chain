@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail, KeyRound, ArrowRight, Sparkles, UserRound, Stethoscope } from 'lucide-react';
+import { ShieldCheck, Mail, KeyRound, ArrowRight, Sparkles, UserRound, LockKeyhole } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 import toast from 'react-hot-toast';
@@ -54,8 +54,8 @@ const SignInPage = () => {
 
       const { user: loggedInUser, token } = response.data;
 
-      if (loggedInUser.role !== 'DOCTOR') {
-        toast.error('Only doctor accounts can use this portal');
+      if (loggedInUser.role !== 'ADMIN') {
+        toast.error('Only admin accounts can use this portal');
         setLoadingAction('');
         return;
       }
@@ -68,7 +68,7 @@ const SignInPage = () => {
         token,
       });
 
-      toast.success(`Welcome back, Dr. ${loggedInUser.name}`);
+      toast.success(`Welcome back, ${loggedInUser.name}`);
       navigate('/dashboard');
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Authentication failed';
@@ -106,41 +106,41 @@ const SignInPage = () => {
           <div className="hidden lg:block space-y-8 transition-all duration-700">
             <div className="inline-flex items-center gap-3 rounded-full border border-white/60 bg-white/55 px-5 py-2 text-sm font-semibold text-sky-700 backdrop-blur-xl shadow-[0_0_0_1px_rgba(255,255,255,0.4)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_16px_45px_rgba(59,130,246,0.18)]">
               <Sparkles className="h-4 w-4 text-sky-500" />
-              OTP secured doctor access
+              OTP secured admin access
             </div>
             <div className="space-y-5">
               <h1 className="text-5xl xl:text-6xl font-black leading-tight tracking-tight">
                 Step into the
                 <span className="block bg-gradient-to-r from-sky-600 via-blue-600 to-violet-600 bg-clip-text text-transparent">
-                  MediLite Doctor Hub
+                  MediLite System Admin
                 </span>
               </h1>
               <p className="max-w-xl text-lg text-slate-600 leading-relaxed">
-                Enter your name and email, receive a one-time code, and move into the staff portal without passwords.
-                The page now uses a lighter healthcare-inspired gradient with softer motion and cleaner transitions.
+                Enter your name and email, receive a one-time code, and move into the platform-governance portal.
+                This workspace is separated from patient care and focuses on access, monitoring, audit trails, policies, and system controls.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <InfoCard title="Email First" description="Request a secure OTP directly to your inbox before entering the dashboard." />
-              <InfoCard title="Doctor Ready" description="This workspace is dedicated to doctors for appointments, patients, records, and medicine stock." />
+              <InfoCard title="Email First" description="Request a secure OTP directly to your inbox before entering the system console." />
+              <InfoCard title="Admin Ready" description="This workspace is dedicated to system admins for platform control, monitoring, integrations, and governance." />
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-white/70 bg-white/68 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_30px_90px_rgba(59,130,246,0.18)] transition-all duration-700 hover:-translate-y-1 hover:shadow-[0_36px_100px_rgba(99,102,241,0.2)]">
             <div className="mb-8 flex flex-col items-center text-center">
               <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl border border-white/80 bg-gradient-to-br from-sky-100 to-indigo-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-transform duration-500 hover:scale-105 hover:rotate-3">
-                <ShieldCheck className="h-10 w-10 text-sky-600" />
+                <LockKeyhole className="h-10 w-10 text-sky-600" />
               </div>
-              <h2 className="text-3xl font-black tracking-tight">Doctor Sign In</h2>
+              <h2 className="text-3xl font-black tracking-tight">System Admin Sign In</h2>
               <p className="mt-2 text-sm font-medium text-slate-500">
-                Add your name and email, request an OTP, and continue to the portal.
+                Add your name and email, request an OTP, and continue to the admin portal.
               </p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
                 <label className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
-                  Doctor Name
+                  Admin Name
                 </label>
                 <div className="group relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
@@ -152,7 +152,7 @@ const SignInPage = () => {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full rounded-2xl border border-white/80 bg-white/75 py-4 pl-11 pr-4 font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-sky-400/70 focus:bg-white focus:ring-4 focus:ring-sky-400/10"
-                    placeholder="Enter doctor name"
+                    placeholder="Enter admin name"
                   />
                 </div>
               </div>
@@ -171,7 +171,7 @@ const SignInPage = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-2xl border border-white/80 bg-white/75 py-4 pl-11 pr-4 font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-sky-400/70 focus:bg-white focus:ring-4 focus:ring-sky-400/10"
-                    placeholder="doctor@medilite.com"
+                    placeholder="admin@medilite.com"
                   />
                 </div>
               </div>
@@ -220,7 +220,7 @@ const SignInPage = () => {
               <div className="rounded-2xl border border-white/70 bg-white/60 px-4 py-3 text-sm text-slate-600">
                 {otpSent
                   ? `We sent a 4-digit OTP to ${normalizedEmail || 'your email'}.`
-                  : 'Request an OTP first, then enter it here to access the portal.'}
+                  : 'Request an OTP first, then enter it here to access the admin portal.'}
               </div>
             </form>
           </div>
