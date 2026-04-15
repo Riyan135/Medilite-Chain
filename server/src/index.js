@@ -43,7 +43,7 @@ const io = isVercel
   : new Server(httpServer, {
       cors: {
         origin: '*',
-        credentials: false,
+        credentials: true,
       },
     });
 app.set('io', io);
@@ -103,7 +103,7 @@ app.use(helmet());
 app.use(
   cors({
     origin: '*',
-    credentials: false,
+    credentials: true,
   })
 );
 
