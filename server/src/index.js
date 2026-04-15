@@ -28,88 +28,82 @@ import { ensureAdminUser } from './services/bootstrapUsers.js';
 import { startReminderScheduler } from './services/reminderScheduler.js';
 
 const app = express();
-const httpServer = createServer(app);
 const PORT = process.env.PORT || 5000;
 const LOG_LEVEL = process.env.LOG_LEVEL || 'minimal';
 const isVerboseLogging = LOG_LEVEL === 'debug' || LOG_LEVEL === 'verbose';
+const isVercel = process.env.VERCEL === '1';
+const httpServer = isVercel ? null : createServer(app);
+const ioStub = {
+  emit: () => {},
+  to: () => ({ emit: () => {} }),
+};
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175',
-    ],
-    credentials: true,
-  },
-});
+const io = isVercel
+  ? ioStub
+  : new Server(httpServer, {
+      cors: {
+        origin: '*',
+        credentials: false,
+      },
+    });
 app.set('io', io);
 
-io.on('connection', (socket) => {
-  if (isVerboseLogging) {
-    console.log('User connected:', socket.id);
-  }
-
-  socket.on('join_room', (data) => {
-    socket.join(data.room);
-  });
-
-  socket.on('send_message', (data) => {
-    io.to(data.room).emit('receive_message', data);
-  });
-
-  socket.on('new_appointment_request', (data) => {
-    io.to(data.doctorId).emit('incoming_appointment', data.appointment);
-  });
-
-  socket.on('appointment_status_update', (data) => {
-    io.to(data.patientUserId).emit('appointment_status_changed', data.appointment);
-  });
-
-  socket.on('consultation_call_invite', (data) => {
-    io.to(data.targetUserId).emit('consultation_call_invite', data);
-  });
-
-  socket.on('consultation_call_accept', (data) => {
-    io.to(data.targetUserId).emit('consultation_call_accept', data);
-  });
-
-  socket.on('consultation_call_reject', (data) => {
-    io.to(data.targetUserId).emit('consultation_call_reject', data);
-  });
-
-  socket.on('consultation_call_signal', (data) => {
-    io.to(data.targetUserId).emit('consultation_call_signal', data);
-  });
-
-  socket.on('consultation_call_end', (data) => {
-    io.to(data.targetUserId).emit('consultation_call_end', data);
-  });
-
-  socket.on('disconnect', () => {
+if (!isVercel) {
+  io.on('connection', (socket) => {
     if (isVerboseLogging) {
-      console.log('User disconnected:', socket.id);
+      console.log('User connected:', socket.id);
     }
+
+    socket.on('join_room', (data) => {
+      socket.join(data.room);
+    });
+
+    socket.on('send_message', (data) => {
+      io.to(data.room).emit('receive_message', data);
+    });
+
+    socket.on('new_appointment_request', (data) => {
+      io.to(data.doctorId).emit('incoming_appointment', data.appointment);
+    });
+
+    socket.on('appointment_status_update', (data) => {
+      io.to(data.patientUserId).emit('appointment_status_changed', data.appointment);
+    });
+
+    socket.on('consultation_call_invite', (data) => {
+      io.to(data.targetUserId).emit('consultation_call_invite', data);
+    });
+
+    socket.on('consultation_call_accept', (data) => {
+      io.to(data.targetUserId).emit('consultation_call_accept', data);
+    });
+
+    socket.on('consultation_call_reject', (data) => {
+      io.to(data.targetUserId).emit('consultation_call_reject', data);
+    });
+
+    socket.on('consultation_call_signal', (data) => {
+      io.to(data.targetUserId).emit('consultation_call_signal', data);
+    });
+
+    socket.on('consultation_call_end', (data) => {
+      io.to(data.targetUserId).emit('consultation_call_end', data);
+    });
+
+    socket.on('disconnect', () => {
+      if (isVerboseLogging) {
+        console.log('User disconnected:', socket.id);
+      }
+    });
   });
-});
+}
 
 app.use(helmet());
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-
-      const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:5173'];
-      const isLocalhost = origin.startsWith('http://localhost:');
-
-      if (allowedOrigins.includes(origin) || isLocalhost) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true,
+    origin: '*',
+    credentials: false,
   })
 );
 
@@ -125,6 +119,13 @@ app.use(
   })
 );
 app.use(express.json());
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'MediLite server is live',
+  });
+});
 
 app.get('/health', (req, res) => {
   res.status(200).json({
@@ -168,16 +169,24 @@ connectMongo()
     await ensureAdminUser();
     startReminderScheduler();
     console.log('MongoDB connected');
-    httpServer.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+
+    if (!isVercel) {
+      httpServer.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    }
   })
   .catch((error) => {
     console.error('MongoDB connection failed:', error);
-    process.exit(1);
+
+    if (!isVercel) {
+      process.exit(1);
+    }
   });
 
 process.on('SIGTERM', async () => {
   await mongoose.disconnect();
   process.exit(0);
 });
+
+export default app;

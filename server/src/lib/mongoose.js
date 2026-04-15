@@ -46,6 +46,7 @@ export const connectMongo = async () => {
     dbName: mongoUri.includes('/')
       ? undefined
       : 'medilite-chain',
+    family: 4,
   });
 
   isConnected = true;

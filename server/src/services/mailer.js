@@ -1,33 +1,77 @@
 import nodemailer from 'nodemailer';
 
 let transporter;
+let gmailFallbackTransporter;
 
 const hasMailConfig = () =>
   Boolean(process.env.SMTP_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
 
+const isGmailHost = () => process.env.SMTP_HOST?.includes('gmail.com');
+
+const buildTransportOptions = ({ host, port, secure }) => ({
+  host,
+  port,
+  secure,
+  family: 4,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  requireTLS: !secure,
+  tls: {
+    servername: host,
+    rejectUnauthorized: false,
+  },
+});
+
 const getTransporter = () => {
-  if (transporter) {
-    return transporter;
+  if (!transporter) {
+    transporter = nodemailer.createTransport(
+      buildTransportOptions({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
+      })
+    );
   }
 
-  const smtpHost = process.env.SMTP_HOST;
-  const isGmailHost = smtpHost?.includes('gmail.com');
-
-  transporter = nodemailer.createTransport({
-    service: isGmailHost ? 'gmail' : undefined,
-    host: smtpHost,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
-
   return transporter;
+};
+
+const getGmailFallbackTransporter = () => {
+  if (!gmailFallbackTransporter) {
+    gmailFallbackTransporter = nodemailer.createTransport(
+      buildTransportOptions({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+      })
+    );
+  }
+
+  return gmailFallbackTransporter;
+};
+
+const sendMailWithFallback = async (message) => {
+  const primaryTransporter = getTransporter();
+
+  try {
+    return await primaryTransporter.sendMail(message);
+  } catch (error) {
+    const canRetryWithGmailFallback =
+      isGmailHost() &&
+      (error?.code === 'ECONNECTION' || error?.code === 'ESOCKET');
+
+    if (!canRetryWithGmailFallback) {
+      throw error;
+    }
+
+    console.warn(
+      `Primary SMTP connection failed (${error.code}). Retrying Gmail over SSL on port 465.`
+    );
+
+    return getGmailFallbackTransporter().sendMail(message);
+  }
 };
 
 export const sendOtpEmail = async ({ to, name, otp }) => {
@@ -35,9 +79,7 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
     throw new Error('Email configuration is incomplete');
   }
 
-  const mailer = getTransporter();
-
-  await mailer.sendMail({
+  await sendMailWithFallback({
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
     to,
     subject: 'Your MediLite OTP',
@@ -59,7 +101,6 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
 };
 
 export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, type = 'created' }) => {
-  const mailer = getTransporter();
   const subject =
     type === 'due' ? `Medicine Reminder: ${medicineName}` : `Reminder Created: ${medicineName}`;
   const intro =
@@ -67,7 +108,7 @@ export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, 
       ? `It's time to take your medicine.`
       : `Your medicine reminder has been created successfully.`;
 
-  await mailer.sendMail({
+  await sendMailWithFallback({
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
     to,
     subject,
@@ -89,9 +130,7 @@ export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, 
 };
 
 export const sendEmergencyBookingEmail = async ({ to, name, hospitalName }) => {
-  const mailer = getTransporter();
-
-  await mailer.sendMail({
+  await sendMailWithFallback({
     from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
     to,
     subject: 'Ambulance Dispatch Confirmed',
