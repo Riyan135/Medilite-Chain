@@ -18,6 +18,8 @@ import FamilyProfiles from './pages/FamilyProfiles';
 import AppointmentBooking from './pages/AppointmentBooking';
 import Consultations from './pages/Consultations';
 
+const adminPortalUrl = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5174';
+
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
 
@@ -34,11 +36,10 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirect to their appropriate dashboard if they try to access a role-restricted page
     const dashboardMap = {
       'PATIENT': '/dashboard',
       'DOCTOR': '/doctor-dashboard',
-      'ADMIN': 'http://localhost:5174'
+      'ADMIN': adminPortalUrl,
     };
 
     if (user.role === 'ADMIN') {
@@ -61,7 +62,7 @@ const PublicRoute = ({ children }) => {
     const dashboardMap = {
       'PATIENT': '/dashboard',
       'DOCTOR': '/doctor-dashboard',
-      'ADMIN': 'http://localhost:5174'
+      'ADMIN': adminPortalUrl,
     };
 
     if (user.role === 'ADMIN') {

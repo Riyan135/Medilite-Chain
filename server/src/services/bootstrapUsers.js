@@ -1,9 +1,29 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 
 import User from '../models/User.js';
 
 const normalizeEmail = (value) => value?.trim().toLowerCase();
 const normalizeName = (value) => value?.trim();
+const generateDoctorIdCandidate = () => `DOC-${crypto.randomInt(100000, 999999)}`;
+
+const ensureDoctorIds = async () => {
+  const doctorsWithoutIds = await User.find({
+    role: 'DOCTOR',
+    $or: [{ doctorId: null }, { doctorId: { $exists: false } }],
+  });
+
+  for (const doctor of doctorsWithoutIds) {
+    let doctorId = generateDoctorIdCandidate();
+    while (await User.exists({ doctorId })) {
+      doctorId = generateDoctorIdCandidate();
+    }
+
+    doctor.doctorId = doctorId;
+    await doctor.save();
+    console.log(`Assigned Doctor ID ${doctorId} to ${doctor.email}`);
+  }
+};
 
 export const ensureAdminUser = async () => {
   const email = normalizeEmail(process.env.ADMIN_EMAIL);
@@ -12,6 +32,7 @@ export const ensureAdminUser = async () => {
   const phone = process.env.ADMIN_PHONE?.trim() || null;
 
   if (!email || !password) {
+    await ensureDoctorIds();
     return;
   }
 
@@ -63,5 +84,6 @@ export const ensureAdminUser = async () => {
     await existingAdmin.save();
     console.log(`Updated bootstrapped admin user for ${email}`);
   }
-};
 
+  await ensureDoctorIds();
+};

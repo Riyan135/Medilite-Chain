@@ -1,48 +1,24 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity, ArrowLeft, Mail, User, Phone, ShieldCheck } from 'lucide-react';
+import { Activity, ArrowLeft, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 import toast from 'react-hot-toast';
 
 const SignInPage = () => {
+  const adminPortalUrl = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5174';
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    phone: '',
-    otp: '',
+    password: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const updateField = (key, value) => {
     setFormData((current) => ({ ...current, [key]: value }));
-  };
-
-  const handleSendOtp = async () => {
-    setError('');
-    setSendingOtp(true);
-
-    try {
-      await api.post('/auth/request-otp', {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-      });
-
-      setOtpSent(true);
-      toast.success(`OTP sent to ${formData.email}`);
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Failed to send OTP';
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setSendingOtp(false);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -51,7 +27,10 @@ const SignInPage = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/verify-otp', formData);
+      const response = await api.post('/auth/login', {
+        email: formData.email,
+        password: formData.password,
+      });
       const { user, token } = response.data;
 
       login({
@@ -62,13 +41,17 @@ const SignInPage = () => {
         token,
       });
 
-      toast.success(`Welcome to the portal, ${user.name}`);
+      toast.success(`Welcome back, ${user.name}`);
+
+      if (user.role === 'ADMIN') {
+        window.location.href = adminPortalUrl;
+        return;
+      }
 
       if (user.role === 'DOCTOR') navigate('/doctor-dashboard');
-      else if (user.role === 'ADMIN') navigate('/admin-dashboard');
       else navigate('/dashboard');
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Invalid OTP';
+      const errorMsg = err.response?.data?.error || 'Failed to sign in';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -94,8 +77,8 @@ const SignInPage = () => {
             </div>
             <span className="text-3xl font-black text-slate-900 tracking-tight">Medi<span className="text-blue-600">Lite</span></span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Portal Login</h1>
-          <p className="text-slate-500 font-medium">Enter your details, receive an OTP by email, and continue securely.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Login to MediLite</h1>
+          <p className="text-slate-500 font-medium">Enter your registered email and password to access your patient portal.</p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-white/60">
@@ -107,36 +90,6 @@ const SignInPage = () => {
             ) : null}
 
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 tracking-wide">Full Name</label>
-              <div className="relative group">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => updateField('name', e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
-                  placeholder="Enter your full name"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 tracking-wide">Phone Number</label>
-              <div className="relative group">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => updateField('phone', e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
-                  placeholder="Enter your phone number"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
               <label className="text-sm font-bold text-slate-700 tracking-wide">Email Address</label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
@@ -146,49 +99,46 @@ const SignInPage = () => {
                   value={formData.email}
                   onChange={(e) => updateField('email', e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
-                  placeholder="Enter your email"
+                  placeholder="Enter your registered email"
                 />
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSendOtp}
-              disabled={sendingOtp || !formData.name || !formData.phone || !formData.email}
-              className="w-full bg-slate-100 text-slate-800 py-4 rounded-2xl font-black hover:bg-slate-200 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {sendingOtp ? 'Sending OTP...' : 'Send OTP'}
-            </button>
-
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700 tracking-wide">OTP</label>
+              <label className="text-sm font-bold text-slate-700 tracking-wide">Password</label>
               <div className="relative group">
-                <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
                 <input
-                  type="text"
+                  type={showPassword ? 'text' : 'password'}
                   required
-                  maxLength={4}
-                  value={formData.otp}
-                  onChange={(e) => updateField('otp', e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900 tracking-[0.4em]"
-                  placeholder="1234"
+                  value={formData.password}
+                  onChange={(e) => updateField('password', e.target.value)}
+                  className="w-full pl-12 pr-12 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
+                  placeholder="Enter your password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
             </div>
 
             <button
               type="submit"
-              disabled={loading || !otpSent}
+              disabled={loading}
               className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/25 transition-all duration-300 disabled:opacity-70 disabled:hover:-translate-y-0 disabled:hover:shadow-none flex items-center justify-center"
             >
-              {loading ? 'Verifying OTP...' : 'Go To Portal'}
+              {loading ? 'Logging In...' : 'Login'}
             </button>
           </form>
 
           <div className="mt-8 pt-8 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">
               Need a new account?{' '}
-              <Link to="/sign-up" className="text-blue-600 font-bold hover:text-blue-700">Create one</Link>
+              <Link to="/sign-up" className="text-blue-600 font-bold hover:text-blue-700">Sign up</Link>
             </p>
           </div>
         </div>

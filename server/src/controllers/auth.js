@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import PatientProfile from '../models/PatientProfile.js';
-import { sendOtpEmail } from '../services/mailer.js';
+import { sendDoctorIdEmail, sendOtpEmail } from '../services/mailer.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_secret_for_dev_only';
 
@@ -12,6 +12,8 @@ const toAuthUser = (user) => ({
   email: user.email,
   name: user.name,
   role: user.role,
+  doctorId: user.doctorId || null,
+  specialization: user.specialization || null,
 });
 
 const markPortalLogin = async (user) => {
@@ -21,6 +23,7 @@ const markPortalLogin = async (user) => {
 };
 
 const otpStore = new Map();
+const doctorSignupStore = new Map();
 
 const buildDoctorEmail = (name) => {
   const slug = name
@@ -29,6 +32,16 @@ const buildDoctorEmail = (name) => {
     .replace(/^\.+|\.+$/g, '');
 
   return `${slug || 'doctor'}@medilite-doctor.local`;
+};
+
+const buildDoctorPortalEmailPreview = (email) => {
+  if (!email) return 'your registered email';
+
+  const [localPart, domain] = email.split('@');
+  if (!localPart || !domain) return email;
+
+  const visibleLocal = localPart.length <= 2 ? `${localPart[0] || ''}*` : `${localPart.slice(0, 2)}***`;
+  return `${visibleLocal}@${domain}`;
 };
 
 const buildDoctorNameFromEmail = (email) =>
@@ -48,6 +61,23 @@ const buildPortalToken = (user) =>
 const isConfiguredAdminEmail = (email) => {
   const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   return Boolean(configuredAdminEmail && email === configuredAdminEmail);
+};
+
+const generateDoctorIdCandidate = () => `DOC-${crypto.randomInt(100000, 999999)}`;
+
+const ensureDoctorId = async (user) => {
+  if (user.doctorId) {
+    return user.doctorId;
+  }
+
+  let doctorId = generateDoctorIdCandidate();
+  while (await User.exists({ doctorId })) {
+    doctorId = generateDoctorIdCandidate();
+  }
+
+  user.doctorId = doctorId;
+  await user.save();
+  return doctorId;
 };
 
 export const register = async (req, res) => {
@@ -168,6 +198,215 @@ export const staffLogin = async (req, res) => {
   } catch (error) {
     console.error('Staff login error:', error);
     res.status(500).json({ error: 'Failed to sign in' });
+  }
+};
+
+export const requestDoctorOtp = async (req, res) => {
+  const doctorId = req.body.doctorId?.trim().toUpperCase();
+  const name = req.body.name?.trim();
+  const email = req.body.email?.trim().toLowerCase();
+
+  try {
+    if (!doctorId || !name || !email) {
+      return res.status(400).json({ error: 'Doctor ID, doctor name, and email are required' });
+    }
+
+    const user = await User.findOne({ doctorId, role: 'DOCTOR' });
+    if (!user) {
+      return res.status(404).json({
+        error: 'Doctor ID not found. Please create a doctor account first.',
+        signupRequired: true,
+      });
+    }
+
+    const isNameMatch = user.name?.trim().toLowerCase() === name.toLowerCase();
+    const isEmailMatch = user.email?.trim().toLowerCase() === email;
+
+    if (!isNameMatch || !isEmailMatch) {
+      return res.status(400).json({ error: 'Doctor ID, doctor name, and email do not match our records' });
+    }
+
+    const otp = String(crypto.randomInt(1000, 10000));
+    otpStore.set(`doctor:${doctorId}`, {
+      otp,
+      doctorId,
+      email: user.email,
+      name: user.name,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    await sendOtpEmail({
+      to: user.email,
+      name: user.name,
+      otp,
+    });
+
+    res.status(200).json({
+      message: 'Doctor OTP sent successfully',
+      doctorId,
+      emailPreview: buildDoctorPortalEmailPreview(user.email),
+    });
+  } catch (error) {
+    console.error('Doctor OTP request error:', error);
+    res.status(500).json({ error: error.message || 'Failed to send doctor OTP' });
+  }
+};
+
+export const verifyDoctorOtp = async (req, res) => {
+  const doctorId = req.body.doctorId?.trim().toUpperCase();
+  const otp = req.body.otp?.trim();
+
+  try {
+    if (!doctorId || !otp) {
+      return res.status(400).json({ error: 'Doctor ID and OTP are required' });
+    }
+
+    const storeKey = `doctor:${doctorId}`;
+    const entry = otpStore.get(storeKey);
+    if (!entry || entry.otp !== otp) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    if (entry.expiresAt < Date.now()) {
+      otpStore.delete(storeKey);
+      return res.status(400).json({ error: 'OTP expired' });
+    }
+
+    const user = await User.findOne({ doctorId, role: 'DOCTOR' });
+    if (!user) {
+      otpStore.delete(storeKey);
+      return res.status(404).json({ error: 'Doctor account not found' });
+    }
+
+    otpStore.delete(storeKey);
+    await markPortalLogin(user);
+
+    const token = buildPortalToken(user);
+    res.status(200).json({ user: toAuthUser(user), token });
+  } catch (error) {
+    console.error('Doctor OTP verify error:', error);
+    res.status(500).json({ error: 'Failed to verify doctor OTP' });
+  }
+};
+
+export const requestDoctorSignupOtp = async (req, res) => {
+  const name = req.body.name?.trim();
+  const email = req.body.email?.trim().toLowerCase();
+  const phone = req.body.phone?.trim();
+  const specialization = req.body.specialization?.trim();
+  const password = req.body.password?.trim();
+
+  try {
+    if (!name || !email || !phone || !specialization || !password) {
+      return res.status(400).json({ error: 'Name, email, phone, specialization, and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [{ email }, { phone, role: 'DOCTOR' }],
+    });
+
+    if (existingUser?.role === 'DOCTOR') {
+      const doctorId = await ensureDoctorId(existingUser);
+      return res.status(400).json({
+        error: `Doctor account already exists. Please use Doctor ID ${doctorId} to log in.`,
+        doctorId,
+      });
+    }
+
+    const otp = String(crypto.randomInt(1000, 10000));
+    doctorSignupStore.set(`doctor-signup:${email}`, {
+      otp,
+      name,
+      email,
+      phone,
+      specialization,
+      password,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    await sendOtpEmail({
+      to: email,
+      name,
+      otp,
+    });
+
+    res.status(200).json({ message: 'Doctor sign-up OTP sent successfully' });
+  } catch (error) {
+    console.error('Doctor sign-up OTP request error:', error);
+    res.status(500).json({ error: error.message || 'Failed to send sign-up OTP' });
+  }
+};
+
+export const verifyDoctorSignupOtp = async (req, res) => {
+  const email = req.body.email?.trim().toLowerCase();
+  const otp = req.body.otp?.trim();
+
+  try {
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    const storeKey = `doctor-signup:${email}`;
+    const entry = doctorSignupStore.get(storeKey);
+
+    if (!entry || entry.otp !== otp) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    if (entry.expiresAt < Date.now()) {
+      doctorSignupStore.delete(storeKey);
+      return res.status(400).json({ error: 'OTP expired' });
+    }
+
+    const duplicate = await User.findOne({ email: entry.email });
+    if (duplicate?.role === 'DOCTOR') {
+      const existingDoctorId = await ensureDoctorId(duplicate);
+      doctorSignupStore.delete(storeKey);
+      return res.status(400).json({
+        error: `Doctor account already exists. Use Doctor ID ${existingDoctorId} to log in.`,
+        doctorId: existingDoctorId,
+      });
+    }
+
+    const user =
+      duplicate ||
+      new User({
+        email: entry.email,
+        password: await bcrypt.hash(crypto.randomUUID(), 10),
+      });
+
+    user.name = entry.name;
+    user.phone = entry.phone;
+    user.specialization = entry.specialization;
+    user.password = await bcrypt.hash(entry.password, 10);
+    user.role = 'DOCTOR';
+    user.isVerified = true;
+
+    await user.save();
+    const doctorId = await ensureDoctorId(user);
+    await sendDoctorIdEmail({
+      to: entry.email,
+      name: entry.name,
+      doctorId,
+    });
+
+    doctorSignupStore.delete(storeKey);
+    await markPortalLogin(user);
+
+    const token = buildPortalToken(user);
+    res.status(201).json({
+      user: toAuthUser(user),
+      token,
+      doctorId,
+      message: 'Doctor account created successfully',
+    });
+  } catch (error) {
+    console.error('Doctor sign-up OTP verify error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create doctor account' });
   }
 };
 
@@ -339,6 +578,9 @@ export const verifyStaffOtp = async (req, res) => {
     }
 
     otpStore.delete(storeKey);
+    if (user.role === 'DOCTOR') {
+      await ensureDoctorId(user);
+    }
     await markPortalLogin(user);
 
     const token = buildPortalToken(user);
@@ -406,12 +648,14 @@ export const getAdminId = async (req, res) => {
 
 export const getDoctors = async (req, res) => {
   try {
-    const doctors = await User.find({ role: 'DOCTOR' }).select('_id name phone').lean();
+    const doctors = await User.find({ role: 'DOCTOR' }).select('_id name phone doctorId specialization').lean();
     res.status(200).json(
       doctors.map((doctor) => ({
         id: doctor._id.toString(),
         name: doctor.name,
         phone: doctor.phone,
+        doctorId: doctor.doctorId || null,
+        specialization: doctor.specialization || null,
       }))
     );
   } catch (error) {
