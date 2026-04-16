@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    doctorId: { type: String, unique: true, sparse: true, trim: true, default: null },
+    specialization: { type: String, default: null, trim: true },
     role: { type: String, enum: ['PATIENT', 'DOCTOR', 'ADMIN'], default: 'PATIENT' },
     phone: { type: String, default: null },
     isVerified: { type: Boolean, default: false },

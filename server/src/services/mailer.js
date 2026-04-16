@@ -4,9 +4,9 @@ let transporter;
 let gmailFallbackTransporter;
 
 const hasMailConfig = () =>
-  Boolean(process.env.SMTP_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASS);
+  Boolean(process.env.SMTP_HOST?.trim() && process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim());
 
-const isGmailHost = () => process.env.SMTP_HOST?.includes('gmail.com');
+const isGmailHost = () => Boolean(process.env.SMTP_HOST?.trim()?.includes('gmail.com'));
 
 const buildTransportOptions = ({ host, port, secure }) => ({
   host,
@@ -14,8 +14,8 @@ const buildTransportOptions = ({ host, port, secure }) => ({
   secure,
   family: 4,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER?.trim(),
+    pass: process.env.EMAIL_PASS?.replace(/\s+/g, ''),
   },
   requireTLS: !secure,
   tls: {
@@ -28,7 +28,7 @@ const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport(
       buildTransportOptions({
-        host: process.env.SMTP_HOST,
+        host: process.env.SMTP_HOST?.trim(),
         port: Number(process.env.SMTP_PORT || 587),
         secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
       })
@@ -80,7 +80,7 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
   }
 
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: 'Your MediLite OTP',
     text: `Hi ${name}, your MediLite OTP is ${otp}. It expires in 10 minutes.`,
@@ -100,6 +100,32 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
   return { delivered: true, mode: 'smtp' };
 };
 
+export const sendDoctorIdEmail = async ({ to, name, doctorId }) => {
+  if (!hasMailConfig()) {
+    throw new Error('Email configuration is incomplete');
+  }
+
+  await sendMailWithFallback({
+    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
+    to,
+    subject: 'Your MediLite Doctor ID',
+    text: `Hi ${name}, your MediLite Doctor ID is ${doctorId}. Use it for future doctor portal login requests.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
+        <h2 style="color: #1d4ed8;">MediLite Doctor ID</h2>
+        <p>Hi ${name},</p>
+        <p>Your permanent Doctor ID has been generated successfully.</p>
+        <div style="font-size: 28px; font-weight: 800; letter-spacing: 3px; color: #0f172a; margin: 24px 0; padding: 18px 20px; border-radius: 16px; background: #eff6ff; border: 1px solid #bfdbfe;">
+          ${doctorId}
+        </div>
+        <p>Please keep this Doctor ID for future doctor portal login requests.</p>
+      </div>
+    `,
+  });
+
+  return { delivered: true, mode: 'smtp' };
+};
+
 export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, type = 'created' }) => {
   const subject =
     type === 'due' ? `Medicine Reminder: ${medicineName}` : `Reminder Created: ${medicineName}`;
@@ -109,7 +135,7 @@ export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, 
       : `Your medicine reminder has been created successfully.`;
 
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject,
     text: `Hi ${name}, ${intro} Medicine: ${medicineName}, Dosage: ${dosage}, Time: ${time}.`,
@@ -131,7 +157,7 @@ export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, 
 
 export const sendEmergencyBookingEmail = async ({ to, name, hospitalName }) => {
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: 'Ambulance Dispatch Confirmed',
     text: `Hi ${name}, your ambulance request has been confirmed. ${hospitalName} has been notified and the ambulance is on the way.`,

@@ -10,7 +10,8 @@ const api = axios.create({
 
 // Interceptor to add auth token if needed
 api.interceptors.request.use((config) => {
-  const storedUser = localStorage.getItem('medilite_user');
+  const storedUser =
+    localStorage.getItem('medilite_doctor_user') || localStorage.getItem('medilite_user');
   if (storedUser) {
     try {
       const { token } = JSON.parse(storedUser);
@@ -36,6 +37,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (!window.location.pathname.includes('/login')) {
         toast.error('Session expired. Please sign in again.');
+        localStorage.removeItem('medilite_doctor_user');
         localStorage.removeItem('medilite_user');
         window.location.href = '/login';
       }

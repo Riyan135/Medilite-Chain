@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Activity, ArrowLeft, Mail, Lock, Phone, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 import toast from 'react-hot-toast';
 
 const SignUpPage = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,6 +23,7 @@ const SignUpPage = () => {
         email: formData.email,
         password: formData.password,
         name: formData.name,
+        phone: formData.phone,
       });
 
       const { user, token } = response.data;
@@ -64,8 +65,8 @@ const SignUpPage = () => {
             </div>
             <span className="text-2xl font-black text-slate-900 tracking-tight">Medi<span className="text-blue-600">Lite</span></span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Create Account</h1>
-          <p className="text-slate-500 font-medium text-sm">Start managing your health today with full privacy</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">Sign Up for MediLite</h1>
+          <p className="text-slate-500 font-medium text-sm">Create your patient account with your name, email, phone number, and password.</p>
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-white/60">
@@ -86,7 +87,7 @@ const SignUpPage = () => {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
-                  placeholder="e.g. John Doe"
+                  placeholder="Enter your full name"
                 />
               </div>
             </div>
@@ -101,7 +102,22 @@ const SignUpPage = () => {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
-                  placeholder="name@example.com"
+                  placeholder="Enter your email"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 tracking-wider uppercase">Phone Number</label>
+              <div className="relative group">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
+                  placeholder="Enter your phone number"
                 />
               </div>
             </div>
@@ -116,7 +132,7 @@ const SignUpPage = () => {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pl-12 pr-12 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
-                  placeholder="Min. 6 characters"
+                  placeholder="Create a password"
                 />
                 <button
                   type="button"
@@ -133,14 +149,14 @@ const SignUpPage = () => {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 hover:-translate-y-1 hover:shadow-xl hover:shadow-blue-600/25 transition-all duration-300 disabled:opacity-70 disabled:hover:-translate-y-0 disabled:hover:shadow-none flex items-center justify-center mt-4"
             >
-              {loading ? <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Create Account'}
+              {loading ? <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Sign Up'}
             </button>
           </form>
 
           <div className="mt-8 pt-8 border-t border-gray-100 text-center">
             <p className="text-sm text-gray-500">
               Already have an account?{' '}
-              <Link to="/sign-in" className="text-blue-600 font-bold hover:text-blue-700">Sign in</Link>
+              <Link to="/sign-in" className="text-blue-600 font-bold hover:text-blue-700">Login</Link>
             </p>
           </div>
         </div>
