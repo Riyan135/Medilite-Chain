@@ -6,7 +6,7 @@ import api from '../api/api';
 import toast from 'react-hot-toast';
 
 const SignInPage = () => {
-  const adminPortalUrl = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5174';
+  const systemAdminUrl = import.meta.env.VITE_SYSTEM_ADMIN_URL || 'http://localhost:5175';
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -44,7 +44,7 @@ const SignInPage = () => {
       toast.success(`Welcome back, ${user.name}`);
 
       if (user.role === 'ADMIN') {
-        window.location.href = adminPortalUrl;
+        window.location.href = systemAdminUrl;
         return;
       }
 

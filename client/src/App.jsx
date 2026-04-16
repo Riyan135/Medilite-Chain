@@ -18,7 +18,7 @@ import FamilyProfiles from './pages/FamilyProfiles';
 import AppointmentBooking from './pages/AppointmentBooking';
 import Consultations from './pages/Consultations';
 
-const adminPortalUrl = import.meta.env.VITE_ADMIN_PORTAL_URL || 'http://localhost:5174';
+const systemAdminUrl = import.meta.env.VITE_SYSTEM_ADMIN_URL || 'http://localhost:5175';
 
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -39,7 +39,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     const dashboardMap = {
       'PATIENT': '/dashboard',
       'DOCTOR': '/doctor-dashboard',
-      'ADMIN': adminPortalUrl,
+      'ADMIN': systemAdminUrl,
     };
 
     if (user.role === 'ADMIN') {
@@ -62,7 +62,7 @@ const PublicRoute = ({ children }) => {
     const dashboardMap = {
       'PATIENT': '/dashboard',
       'DOCTOR': '/doctor-dashboard',
-      'ADMIN': adminPortalUrl,
+      'ADMIN': systemAdminUrl,
     };
 
     if (user.role === 'ADMIN') {
