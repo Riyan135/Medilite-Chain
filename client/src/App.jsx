@@ -12,11 +12,13 @@ import Records from './pages/Records';
 import LandingPage from './pages/LandingPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import SignUpOtpPage from './pages/SignUpOtpPage';
 import SymptomChecker from './pages/SymptomChecker';
 import EmergencySOS from './pages/EmergencySOS';
 import FamilyProfiles from './pages/FamilyProfiles';
 import AppointmentBooking from './pages/AppointmentBooking';
 import Consultations from './pages/Consultations';
+import PatientMessages from './pages/PatientMessages';
 
 const systemAdminUrl = import.meta.env.VITE_SYSTEM_ADMIN_URL || 'http://localhost:5175';
 
@@ -93,10 +95,18 @@ function App() {
             }
           />
           <Route
-            path="/sign-up/*"
+            path="/sign-up"
             element={
               <PublicRoute>
                 <SignUpPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/sign-up/otp"
+            element={
+              <PublicRoute>
+                <SignUpOtpPage />
               </PublicRoute>
             }
           />
@@ -189,6 +199,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <Consultations />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <PrivateRoute allowedRoles={['PATIENT']}>
+                <PatientMessages />
               </PrivateRoute>
             }
           />

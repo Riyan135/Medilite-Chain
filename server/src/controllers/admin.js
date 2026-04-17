@@ -1,9 +1,23 @@
+import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
+
 import User from '../models/User.js';
 import MedicalRecord from '../models/MedicalRecord.js';
 import Appointment from '../models/Appointment.js';
 import Consultation from '../models/Consultation.js';
 import Medicine from '../models/Medicine.js';
 import { serializeMedicine } from '../services/medicineStock.js';
+import { sendDoctorIdEmail } from '../services/mailer.js';
+import { ensureDoctorId } from '../services/doctorIdentity.js';
+
+const ensureAdminAccess = (req, res) => {
+  if (req.user?.role !== 'ADMIN') {
+    res.status(403).json({ error: 'Only system admin accounts can perform this action' });
+    return false;
+  }
+
+  return true;
+};
 
 export const getSystemStats = async (req, res) => {
   try {
@@ -119,5 +133,73 @@ export const approveDoctor = async (req, res) => {
   } catch (error) {
     console.error('Error approving doctor:', error);
     res.status(500).json({ error: 'Failed to approve doctor' });
+  }
+};
+
+export const createDoctorAccount = async (req, res) => {
+  if (!ensureAdminAccess(req, res)) {
+    return;
+  }
+
+  const normalizedName = req.body.name?.trim();
+  const normalizedEmail = req.body.email?.trim().toLowerCase();
+  const normalizedPhone = req.body.phone?.trim() || null;
+  const normalizedSpecialization = req.body.specialization?.trim();
+  const customDoctorId = req.body.customDoctorId?.trim() || null;
+
+  try {
+    if (!normalizedName || !normalizedEmail || !normalizedSpecialization) {
+      return res.status(400).json({ error: 'Name, email, and specialization are required' });
+    }
+
+    const existingUser = await User.findOne({
+      $or: [
+        { email: normalizedEmail },
+        ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
+      ],
+    });
+
+    if (existingUser?.role === 'DOCTOR') {
+      const existingDoctorId = await ensureDoctorId(existingUser);
+      return res.status(400).json({
+        error: `Doctor account already exists with Doctor ID ${existingDoctorId}.`,
+        doctorId: existingDoctorId,
+      });
+    }
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'A user with this email or phone already exists' });
+    }
+
+    const doctor = new User({
+      email: normalizedEmail,
+      password: await bcrypt.hash(crypto.randomUUID(), 10),
+      name: normalizedName,
+      phone: normalizedPhone,
+      specialization: normalizedSpecialization,
+      role: 'DOCTOR',
+      isVerified: true,
+    });
+
+    const doctorId = await ensureDoctorId(doctor, customDoctorId);
+
+    await sendDoctorIdEmail({
+      to: normalizedEmail,
+      name: normalizedName,
+      doctorId,
+    });
+
+    res.status(201).json({
+      id: doctor._id.toString(),
+      name: doctor.name,
+      email: doctor.email,
+      phone: doctor.phone || null,
+      specialization: doctor.specialization || null,
+      doctorId,
+      message: 'Doctor account created successfully',
+    });
+  } catch (error) {
+    console.error('Error creating doctor account:', error);
+    res.status(500).json({ error: 'Failed to create doctor account' });
   }
 };

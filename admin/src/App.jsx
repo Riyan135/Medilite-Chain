@@ -11,7 +11,6 @@ import PatientDetails from './pages/PatientDetails';
 import Profile from './pages/Profile';
 import Records from './pages/Records';
 import Settings from './pages/Settings';
-import DoctorSignUpPage from './pages/DoctorSignUpPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -43,7 +42,7 @@ const App = () => {
         <Toaster position="top-right" />
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
-          <Route path="/sign-up" element={<DoctorSignUpPage />} />
+          <Route path="/sign-up" element={<Navigate to="/login" replace />} />
           <Route 
             path="/dashboard" 
             element={

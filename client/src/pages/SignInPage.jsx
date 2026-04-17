@@ -31,14 +31,15 @@ const SignInPage = () => {
         email: formData.email,
         password: formData.password,
       });
-      const { user, token } = response.data;
+      const { user } = response.data;
 
       login({
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
-        token,
+        doctorId: user.doctorId,
+        specialization: user.specialization,
       });
 
       toast.success(`Welcome back, ${user.name}`);
@@ -82,7 +83,7 @@ const SignInPage = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-white/60">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
             {error ? (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100">
                 {error}
@@ -96,6 +97,7 @@ const SignInPage = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   value={formData.email}
                   onChange={(e) => updateField('email', e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
@@ -111,6 +113,7 @@ const SignInPage = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="current-password"
                   value={formData.password}
                   onChange={(e) => updateField('password', e.target.value)}
                   className="w-full pl-12 pr-12 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
