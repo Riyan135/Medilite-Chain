@@ -1,6 +1,9 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+const AUTH_STORAGE_KEY = 'medilite_admin_token';
+const LEGACY_STORAGE_KEY = 'medilite_user';
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
   headers: {
@@ -10,10 +13,16 @@ const api = axios.create({
 
 // Interceptor to add auth token if needed
 api.interceptors.request.use((config) => {
-  const storedUser = localStorage.getItem('medilite_user');
-  if (storedUser) {
+  const storedToken = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (storedToken) {
+    config.headers.Authorization = `Bearer ${storedToken}`;
+    return config;
+  }
+
+  const legacyUser = localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (legacyUser) {
     try {
-      const { token } = JSON.parse(storedUser);
+      const { token } = JSON.parse(legacyUser);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -36,7 +45,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (!window.location.pathname.includes('/login')) {
         toast.error('Session expired. Please sign in again.');
-        localStorage.removeItem('medilite_user');
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
         window.location.href = '/login';
       }
     } else {

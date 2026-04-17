@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Activity, ArrowLeft, Mail, Lock, Phone, User, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 import toast from 'react-hot-toast';
 
@@ -11,7 +10,6 @@ const SignUpPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,19 +23,13 @@ const SignUpPage = () => {
         name: formData.name,
         phone: formData.phone,
       });
-
-      const { user, token } = response.data;
-
-      register({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        token,
+      toast.success(response.data.message || 'OTP sent successfully!');
+      navigate(`/sign-up/otp?email=${encodeURIComponent(formData.email.trim().toLowerCase())}`, {
+        state: {
+          email: formData.email.trim().toLowerCase(),
+          name: formData.name.trim(),
+        },
       });
-
-      toast.success('Account created successfully!');
-      navigate('/dashboard');
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Registration failed. Please try again.';
       setError(errorMsg);
@@ -70,7 +62,7 @@ const SignUpPage = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-xl p-8 rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-white/60">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
             {error ? (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium border border-red-100">
                 {error}
@@ -84,6 +76,7 @@ const SignUpPage = () => {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
@@ -99,6 +92,7 @@ const SignUpPage = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="off"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
@@ -114,6 +108,7 @@ const SignUpPage = () => {
                 <input
                   type="tel"
                   required
+                  autoComplete="off"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
@@ -129,6 +124,7 @@ const SignUpPage = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pl-12 pr-12 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"

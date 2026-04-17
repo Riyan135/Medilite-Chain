@@ -9,6 +9,10 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 const LandingPage = () => {
   const { user, logout } = useAuth();
 
+  const handleLogout = async () => {
+    await logout();
+  };
+
   return (
     <div className="min-h-screen landing-gradient-shell relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
@@ -43,7 +47,7 @@ const LandingPage = () => {
                 </Link>
               )}
               <Link to="/dashboard" className="landing-link-hover hover:text-blue-600 hover:-translate-y-0.5">Dashboard</Link>
-              <button onClick={logout} className="landing-link-hover text-gray-600 hover:text-red-600 hover:-translate-y-0.5">Logout</button>
+              <button onClick={handleLogout} className="landing-link-hover text-gray-600 hover:text-red-600 hover:-translate-y-0.5">Logout</button>
             </>
           ) : (
             <>

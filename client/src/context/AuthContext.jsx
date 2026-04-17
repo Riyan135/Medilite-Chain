@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import api from '../api/api';
 
 const AuthContext = createContext();
 
@@ -7,27 +8,45 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const storedUser = localStorage.getItem('medilite_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const restoreSession = async () => {
+      try {
+        const response = await api.get('/auth/me');
+        setUser(response.data.user || null);
+      } catch (error) {
+        if (error.response?.status !== 401) {
+          console.error('Failed to restore patient session:', error);
+        }
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
   const login = (userData) => {
     setUser(userData);
-    localStorage.setItem('medilite_user', JSON.stringify(userData));
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('medilite_user');
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Failed to log out cleanly:', error);
+    } finally {
+      document.cookie.split(";").forEach((c) => {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+      localStorage.clear();
+      sessionStorage.clear();
+      setUser(null);
+      window.location.href = '/sign-in';
+    }
   };
 
   const register = (userData) => {
     setUser(userData);
-    localStorage.setItem('medilite_user', JSON.stringify(userData));
   };
 
   return (

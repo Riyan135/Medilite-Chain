@@ -4,8 +4,11 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import PatientProfile from '../models/PatientProfile.js';
 import { sendDoctorIdEmail, sendOtpEmail } from '../services/mailer.js';
+import { ensureDoctorId } from '../services/doctorIdentity.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_secret_for_dev_only';
+const AUTH_COOKIE_NAME = 'medilite_auth';
+const AUTH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 const toAuthUser = (user) => ({
   id: user._id.toString(),
@@ -24,6 +27,34 @@ const markPortalLogin = async (user) => {
 
 const otpStore = new Map();
 const doctorSignupStore = new Map();
+const patientSignupStore = new Map();
+
+const getAuthCookieOptions = (req) => {
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const isSecureRequest = req.secure || forwardedProto === 'https';
+  const configuredSameSite = process.env.AUTH_COOKIE_SAME_SITE?.trim();
+  const sameSite = configuredSameSite || (isSecureRequest ? 'none' : 'lax');
+  const secure = sameSite === 'none' ? true : isSecureRequest;
+
+  return {
+    httpOnly: true,
+    sameSite,
+    secure,
+    maxAge: AUTH_COOKIE_MAX_AGE,
+    path: '/',
+  };
+};
+
+const setAuthCookie = (req, res, token) => {
+  res.cookie(AUTH_COOKIE_NAME, token, getAuthCookieOptions(req));
+};
+
+const clearAuthCookie = (req, res) => {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    ...getAuthCookieOptions(req),
+    expires: new Date(0),
+  });
+};
 
 const buildDoctorEmail = (name) => {
   const slug = name
@@ -63,23 +94,6 @@ const isConfiguredAdminEmail = (email) => {
   return Boolean(configuredAdminEmail && email === configuredAdminEmail);
 };
 
-const generateDoctorIdCandidate = () => `DOC-${crypto.randomInt(100000, 999999)}`;
-
-const ensureDoctorId = async (user) => {
-  if (user.doctorId) {
-    return user.doctorId;
-  }
-
-  let doctorId = generateDoctorIdCandidate();
-  while (await User.exists({ doctorId })) {
-    doctorId = generateDoctorIdCandidate();
-  }
-
-  user.doctorId = doctorId;
-  await user.save();
-  return doctorId;
-};
-
 export const register = async (req, res) => {
   const { email, password, name, phone, bloodGroup } = req.body;
 
@@ -100,26 +114,88 @@ export const register = async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      email: normalizedEmail,
-      password: hashedPassword,
+    const otp = String(crypto.randomInt(1000, 10000));
+    patientSignupStore.set(`patient-signup:${normalizedEmail}`, {
       name: normalizedName,
+      email: normalizedEmail,
       phone: phone?.trim() || null,
+      bloodGroup: bloodGroup || null,
+      password,
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    await sendOtpEmail({
+      to: normalizedEmail,
+      name: normalizedName,
+      otp,
+    });
+
+    res.status(200).json({
+      message: 'Signup OTP sent successfully',
+      email: normalizedEmail,
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Failed to create account' });
+  }
+};
+
+export const verifyRegisterOtp = async (req, res) => {
+  const normalizedEmail = req.body.email?.trim().toLowerCase();
+  const normalizedOtp = req.body.otp?.trim();
+
+  try {
+    if (!normalizedEmail || !normalizedOtp) {
+      return res.status(400).json({ error: 'Email and OTP are required' });
+    }
+
+    const storeKey = `patient-signup:${normalizedEmail}`;
+    const entry = patientSignupStore.get(storeKey);
+
+    if (!entry || entry.otp !== normalizedOtp) {
+      return res.status(400).json({ error: 'Invalid OTP' });
+    }
+
+    if (entry.expiresAt < Date.now()) {
+      patientSignupStore.delete(storeKey);
+      return res.status(400).json({ error: 'OTP expired' });
+    }
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      patientSignupStore.delete(storeKey);
+      return res.status(400).json({ error: 'User already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(entry.password, 10);
+    const user = await User.create({
+      email: entry.email,
+      password: hashedPassword,
+      name: entry.name,
+      phone: entry.phone,
       role: 'PATIENT',
     });
 
     await PatientProfile.create({
       userId: user._id.toString(),
-      bloodGroup: bloodGroup || null,
+      bloodGroup: entry.bloodGroup,
       consultingDoctorId: null,
     });
 
+    patientSignupStore.delete(storeKey);
+    await markPortalLogin(user);
+
     const token = buildPortalToken(user);
-    res.status(201).json({ user: toAuthUser(user), token });
+    setAuthCookie(req, res, token);
+    res.status(201).json({
+      user: toAuthUser(user),
+      token,
+      message: 'Account created successfully',
+    });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Failed to create account' });
+    console.error('Signup OTP verification error:', error);
+    res.status(500).json({ error: 'Failed to verify signup OTP' });
   }
 };
 
@@ -148,6 +224,7 @@ export const login = async (req, res) => {
 
     await markPortalLogin(user);
     const token = buildPortalToken(user);
+    setAuthCookie(req, res, token);
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
     console.error('Login error:', error);
@@ -156,45 +233,8 @@ export const login = async (req, res) => {
 };
 
 export const staffLogin = async (req, res) => {
-  let { name, password } = req.body;
-
   try {
-    if (name) name = name.trim();
-
-    if (!name || !password) {
-      return res.status(400).json({ error: 'Name and password are required' });
-    }
-
-    if (!/^\d{4}$/.test(password)) {
-      return res.status(400).json({ error: 'Password must be exactly 4 digits' });
-    }
-
-    let user = await User.findOne({
-      name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
-    });
-
-    if (!user) {
-      user = await User.create({
-        name,
-        email: buildDoctorEmail(name),
-        password: await bcrypt.hash(password, 10),
-        role: 'DOCTOR',
-        isVerified: true,
-      });
-    } else if (user.role === 'ADMIN') {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ error: 'Invalid name or password' });
-      }
-    } else {
-      user.password = await bcrypt.hash(password, 10);
-      user.role = 'DOCTOR';
-      user.isVerified = true;
-    }
-
-    await markPortalLogin(user);
-    const token = buildPortalToken(user);
-    res.status(200).json({ user: toAuthUser(user), token });
+    res.status(403).json({ error: 'Legacy staff login is disabled. Doctors must log in with their Doctor ID.' });
   } catch (error) {
     console.error('Staff login error:', error);
     res.status(500).json({ error: 'Failed to sign in' });
@@ -203,27 +243,21 @@ export const staffLogin = async (req, res) => {
 
 export const requestDoctorOtp = async (req, res) => {
   const doctorId = req.body.doctorId?.trim().toUpperCase();
-  const name = req.body.name?.trim();
-  const email = req.body.email?.trim().toLowerCase();
 
   try {
-    if (!doctorId || !name || !email) {
-      return res.status(400).json({ error: 'Doctor ID, doctor name, and email are required' });
+    if (!doctorId) {
+      return res.status(400).json({ error: 'Doctor ID is required' });
     }
 
     const user = await User.findOne({ doctorId, role: 'DOCTOR' });
     if (!user) {
       return res.status(404).json({
-        error: 'Doctor ID not found. Please create a doctor account first.',
-        signupRequired: true,
+        error: 'Doctor ID not found. Please contact the system admin.',
       });
     }
 
-    const isNameMatch = user.name?.trim().toLowerCase() === name.toLowerCase();
-    const isEmailMatch = user.email?.trim().toLowerCase() === email;
-
-    if (!isNameMatch || !isEmailMatch) {
-      return res.status(400).json({ error: 'Doctor ID, doctor name, and email do not match our records' });
+    if (!user.email?.trim()) {
+      return res.status(400).json({ error: 'Doctor account is missing an email address. Please contact the system admin.' });
     }
 
     const otp = String(crypto.randomInt(1000, 10000));
@@ -244,11 +278,40 @@ export const requestDoctorOtp = async (req, res) => {
     res.status(200).json({
       message: 'Doctor OTP sent successfully',
       doctorId,
+      doctorName: user.name,
       emailPreview: buildDoctorPortalEmailPreview(user.email),
     });
   } catch (error) {
     console.error('Doctor OTP request error:', error);
     res.status(500).json({ error: error.message || 'Failed to send doctor OTP' });
+  }
+};
+
+export const loginDoctorWithId = async (req, res) => {
+  const doctorId = req.body.doctorId?.trim().toUpperCase();
+
+  try {
+    if (!doctorId) {
+      return res.status(400).json({ error: 'Doctor ID is required' });
+    }
+
+    const user = await User.findOne({ doctorId, role: 'DOCTOR' });
+    if (!user) {
+      return res.status(404).json({ error: 'Doctor ID not found. Please contact the system admin.' });
+    }
+
+    await markPortalLogin(user);
+
+    const token = buildPortalToken(user);
+    setAuthCookie(req, res, token);
+    res.status(200).json({
+      user: toAuthUser(user),
+      token,
+      message: 'Doctor login successful',
+    });
+  } catch (error) {
+    console.error('Doctor ID login error:', error);
+    res.status(500).json({ error: 'Failed to sign in with Doctor ID' });
   }
 };
 
@@ -282,6 +345,7 @@ export const verifyDoctorOtp = async (req, res) => {
     await markPortalLogin(user);
 
     const token = buildPortalToken(user);
+    setAuthCookie(req, res, token);
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
     console.error('Doctor OTP verify error:', error);
@@ -290,51 +354,8 @@ export const verifyDoctorOtp = async (req, res) => {
 };
 
 export const requestDoctorSignupOtp = async (req, res) => {
-  const name = req.body.name?.trim();
-  const email = req.body.email?.trim().toLowerCase();
-  const phone = req.body.phone?.trim();
-  const specialization = req.body.specialization?.trim();
-  const password = req.body.password?.trim();
-
   try {
-    if (!name || !email || !phone || !specialization || !password) {
-      return res.status(400).json({ error: 'Name, email, phone, specialization, and password are required' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
-    }
-
-    const existingUser = await User.findOne({
-      $or: [{ email }, { phone, role: 'DOCTOR' }],
-    });
-
-    if (existingUser?.role === 'DOCTOR') {
-      const doctorId = await ensureDoctorId(existingUser);
-      return res.status(400).json({
-        error: `Doctor account already exists. Please use Doctor ID ${doctorId} to log in.`,
-        doctorId,
-      });
-    }
-
-    const otp = String(crypto.randomInt(1000, 10000));
-    doctorSignupStore.set(`doctor-signup:${email}`, {
-      otp,
-      name,
-      email,
-      phone,
-      specialization,
-      password,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-    });
-
-    await sendOtpEmail({
-      to: email,
-      name,
-      otp,
-    });
-
-    res.status(200).json({ message: 'Doctor sign-up OTP sent successfully' });
+    res.status(403).json({ error: 'Doctor accounts are created by the system admin only.' });
   } catch (error) {
     console.error('Doctor sign-up OTP request error:', error);
     res.status(500).json({ error: error.message || 'Failed to send sign-up OTP' });
@@ -342,68 +363,8 @@ export const requestDoctorSignupOtp = async (req, res) => {
 };
 
 export const verifyDoctorSignupOtp = async (req, res) => {
-  const email = req.body.email?.trim().toLowerCase();
-  const otp = req.body.otp?.trim();
-
   try {
-    if (!email || !otp) {
-      return res.status(400).json({ error: 'Email and OTP are required' });
-    }
-
-    const storeKey = `doctor-signup:${email}`;
-    const entry = doctorSignupStore.get(storeKey);
-
-    if (!entry || entry.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    if (entry.expiresAt < Date.now()) {
-      doctorSignupStore.delete(storeKey);
-      return res.status(400).json({ error: 'OTP expired' });
-    }
-
-    const duplicate = await User.findOne({ email: entry.email });
-    if (duplicate?.role === 'DOCTOR') {
-      const existingDoctorId = await ensureDoctorId(duplicate);
-      doctorSignupStore.delete(storeKey);
-      return res.status(400).json({
-        error: `Doctor account already exists. Use Doctor ID ${existingDoctorId} to log in.`,
-        doctorId: existingDoctorId,
-      });
-    }
-
-    const user =
-      duplicate ||
-      new User({
-        email: entry.email,
-        password: await bcrypt.hash(crypto.randomUUID(), 10),
-      });
-
-    user.name = entry.name;
-    user.phone = entry.phone;
-    user.specialization = entry.specialization;
-    user.password = await bcrypt.hash(entry.password, 10);
-    user.role = 'DOCTOR';
-    user.isVerified = true;
-
-    await user.save();
-    const doctorId = await ensureDoctorId(user);
-    await sendDoctorIdEmail({
-      to: entry.email,
-      name: entry.name,
-      doctorId,
-    });
-
-    doctorSignupStore.delete(storeKey);
-    await markPortalLogin(user);
-
-    const token = buildPortalToken(user);
-    res.status(201).json({
-      user: toAuthUser(user),
-      token,
-      doctorId,
-      message: 'Doctor account created successfully',
-    });
+    res.status(403).json({ error: 'Doctor accounts are created by the system admin only.' });
   } catch (error) {
     console.error('Doctor sign-up OTP verify error:', error);
     res.status(500).json({ error: error.message || 'Failed to create doctor account' });
@@ -452,6 +413,11 @@ export const requestStaffOtp = async (req, res) => {
 
     if (!normalizedName || !normalizedEmail) {
       return res.status(400).json({ error: 'Name and email are required' });
+    }
+
+    const existingAdmin = await User.findOne({ email: normalizedEmail, role: 'ADMIN' }).lean();
+    if (!isConfiguredAdminEmail(normalizedEmail) && !existingAdmin) {
+      return res.status(403).json({ error: 'Only system admin accounts can access this portal' });
     }
 
     const otp = String(crypto.randomInt(1000, 10000));
@@ -524,6 +490,7 @@ export const verifyOtp = async (req, res) => {
     await markPortalLogin(user);
 
     const token = buildPortalToken(user);
+    setAuthCookie(req, res, token);
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
     console.error('OTP verify error:', error);
@@ -557,19 +524,23 @@ export const verifyStaffOtp = async (req, res) => {
     let user = await User.findOne({ email: normalizedEmail });
     const shouldBeAdmin = isConfiguredAdminEmail(normalizedEmail);
 
+    if (!shouldBeAdmin && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only system admin accounts can access this portal' });
+    }
+
     if (!user) {
       user = await User.create({
         email: normalizedEmail,
         password: await bcrypt.hash(crypto.randomUUID(), 10),
         name: normalizedName,
-        role: shouldBeAdmin ? 'ADMIN' : 'DOCTOR',
+        role: 'ADMIN',
         isVerified: true,
       });
     } else {
       if (shouldBeAdmin) {
         user.role = 'ADMIN';
       } else if (user.role !== 'ADMIN') {
-        user.role = 'DOCTOR';
+        return res.status(403).json({ error: 'Only system admin accounts can access this portal' });
       }
 
       user.isVerified = true;
@@ -578,12 +549,10 @@ export const verifyStaffOtp = async (req, res) => {
     }
 
     otpStore.delete(storeKey);
-    if (user.role === 'DOCTOR') {
-      await ensureDoctorId(user);
-    }
     await markPortalLogin(user);
 
     const token = buildPortalToken(user);
+    setAuthCookie(req, res, token);
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
     console.error('Staff OTP verify error:', error);
@@ -661,5 +630,28 @@ export const getDoctors = async (req, res) => {
   } catch (error) {
     console.error('Error fetching doctors:', error);
     res.status(500).json({ error: 'Failed to fetch doctors' });
+  }
+};
+
+export const getCurrentUser = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    res.status(200).json({ user: toAuthUser(req.user) });
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    res.status(500).json({ error: 'Failed to fetch current user' });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    clearAuthCookie(req, res);
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Failed to log out' });
   }
 };

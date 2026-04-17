@@ -1,4 +1,4 @@
-import { PlusCircle, ArrowUpRight, Shield, Heart, FileText, Pill, MessageSquare, AlertTriangle, User, CalendarClock } from 'lucide-react';
+import { Bell, FileText, Pill, Shield, Heart, MessageSquare, AlertTriangle, User, CalendarClock, ArrowUpRight, PlusCircle } from 'lucide-react';
 import MedicalRecordUpload from '../components/MedicalRecordUpload';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,7 @@ import Sidebar from '../components/Sidebar';
 import ConsultationCallModal from '../components/ConsultationCallModal';
 import { getSocket } from '../lib/socket';
 
-const Card = ({ title, value, icon: Icon, color, onClick, interactive = false }) => (
+const Card = ({ title, value, icon: Icon, color, progress, progressLabel, onClick, interactive = false }) => (
   <button
     type="button"
     onClick={onClick}
@@ -20,15 +20,22 @@ const Card = ({ title, value, icon: Icon, color, onClick, interactive = false })
     <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-r from-blue-100/60 via-cyan-100/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
     <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-blue-400/10 blur-2xl transition-transform duration-700 group-hover:scale-150" />
     <div className="flex justify-between items-start mb-6">
-      <div className={`rounded-2xl p-4 ${color} bg-opacity-10 shadow-inner transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
-        <Icon className={`w-7 h-7 ${color.replace('bg-', 'text-')}`} />
+      <div className={`flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.6rem] ${color} shadow-[inset_0_1px_0_rgba(255,255,255,0.24)] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
+        <Icon className="h-8 w-8 text-white" />
       </div>
       <span className="rounded-full bg-slate-100/70 px-3 py-1 text-xs font-bold uppercase tracking-wider text-slate-400 shadow-sm">30 Days</span>
     </div>
     <h3 className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">{title}</h3>
     <p className="text-4xl font-black text-slate-900 tracking-tight">{value}</p>
-    <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-      <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 transition-all duration-700 group-hover:w-5/6" />
+    <div className="mt-4 flex items-center justify-between gap-3">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Progress</p>
+      <p className="text-sm font-black text-slate-900">{progressLabel || `${progress}%`}</p>
+    </div>
+    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+      <div
+        className="h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 transition-all duration-700"
+        style={{ width: `${progress}%` }}
+      />
     </div>
   </button>
 );
@@ -206,6 +213,7 @@ const PatientDashboard = () => {
   const [profile, setProfile] = useState(null);
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [consultations, setConsultations] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
   const [activeCall, setActiveCall] = useState(null);
@@ -278,16 +286,18 @@ const PatientDashboard = () => {
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      const [recordsRes, statsRes, profileRes, inventoryRes] = await Promise.all([
+      const [recordsRes, statsRes, profileRes, inventoryRes, consultationsRes] = await Promise.all([
         api.get(`/records/patient/${targetId}`),
         api.get(`/patients/stats/${targetId}`),
         api.get(`/patients/profile/${targetId}`),
         api.get(`/inventory/${targetId}`),
+        api.get('/consultations'),
       ]);
       setRecords(recordsRes.data);
       setStats(statsRes.data);
       setProfile(profileRes.data.patientProfile);
       setInventory(inventoryRes.data);
+      setConsultations(consultationsRes.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -296,6 +306,14 @@ const PatientDashboard = () => {
   };
 
   const lowStockItems = inventory.filter(item => item.stock <= item.minThreshold);
+  const totalRecordsProgress = loading ? 0 : Math.min(100, (stats?.totalRecords || 0) * 12);
+  const medicineStockProgress = loading
+    ? 0
+    : inventory.length
+      ? Math.max(8, Math.round(((inventory.length - lowStockItems.length) / inventory.length) * 100))
+      : 0;
+  const remindersProgress = loading ? 0 : Math.min(100, (stats?.activeReminders || 0) * 20);
+  const healthScoreProgress = loading ? 0 : Math.min(100, Number(stats?.healthScore) || 0);
 
   const acceptIncomingCall = () => {
     if (!incomingCall) return;
@@ -418,26 +436,34 @@ const PatientDashboard = () => {
           <Card
             title="Total Records"
             value={loading ? "..." : stats?.totalRecords || "0"}
-            icon={PlusCircle}
+            icon={FileText}
             color="bg-blue-600"
+            progress={totalRecordsProgress}
+            progressLabel={loading ? '...' : `${totalRecordsProgress}%`}
           />
           <Card
             title="Medicine Stock"
             value={loading ? "..." : inventory.length || "0"}
             icon={Pill}
             color="bg-indigo-600"
+            progress={medicineStockProgress}
+            progressLabel={loading ? '...' : `${medicineStockProgress}%`}
           />
           <Card
             title="Upcoming Reminders"
             value={loading ? "..." : stats?.activeReminders || "0"}
-            icon={ArrowUpRight}
+            icon={Bell}
             color="bg-green-600"
+            progress={remindersProgress}
+            progressLabel={loading ? '...' : `${remindersProgress}%`}
           />
           <Card
             title="Health Score"
             value={loading ? "..." : stats?.healthScore || "N/A"}
             icon={Shield}
             color="bg-indigo-600"
+            progress={healthScoreProgress}
+            progressLabel={loading ? '...' : `${healthScoreProgress}%`}
             interactive
             onClick={() => setShowHealthGraph(true)}
           />
@@ -516,14 +542,56 @@ const PatientDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8 animate-slide-up-fade" style={{animationDelay: '0.1s'}}>
+          <div className="lg:col-span-2 space-y-8 animate-slide-up-fade" style={{ animationDelay: '0.1s' }}>
+            {consultations.length > 0 && (
+              <section className="patient-dashboard-panel relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/75 p-8 backdrop-blur-xl">
+                <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-indigo-100/60 via-purple-100/30 to-transparent opacity-80" />
+                <div className="relative z-10">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">Upcoming Consultations</h2>
+                  </div>
+                  <div className="space-y-4">
+                    {consultations.map(consultation => (
+                      <div key={consultation.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white/70 p-4 shadow-sm">
+                        <div>
+                          <p className="font-bold text-slate-900 text-lg">Dr. {consultation.doctor?.name}</p>
+                          <p className="text-sm font-medium text-slate-500">
+                            {consultation.scheduledDate} at {consultation.scheduledTime}
+                          </p>
+                          <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider ${
+                            consultation.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                            consultation.status === 'ONGOING' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {consultation.status}
+                          </span>
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => setActiveChat({
+                              id: consultation.doctor?.id,
+                              name: `Dr. ${consultation.doctor?.name}`,
+                              consultationId: consultation.id
+                            })}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-xl hover:bg-blue-100 transition-colors shadow-sm"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            Chat
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
             <section className="patient-dashboard-panel relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/75 p-8 backdrop-blur-xl">
               <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-r from-blue-100/60 via-cyan-100/30 to-transparent opacity-80" />
-              <div className="flex justify-between items-center mb-8">
+              <div className="flex justify-between items-center mb-8 relative z-10">
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">Recent Medical History</h2>
                 <button onClick={() => navigate('/records')} className="text-blue-600 text-sm font-bold hover:text-blue-700 hover:underline transition-colors">View All Directory</button>
               </div>
-              <div className="space-y-6">
+              <div className="space-y-6 relative z-10">
                 {loading ? (
                   <p className="text-slate-400">Loading records...</p>
                 ) : records.length > 0 ? (
@@ -555,7 +623,7 @@ const PatientDashboard = () => {
             </section>
           </div>
 
-          <aside className="space-y-8 animate-slide-up-fade" style={{animationDelay: '0.2s'}}>
+          <aside className="space-y-8 animate-slide-up-fade" style={{ animationDelay: '0.2s' }}>
             <section className="patient-dashboard-panel group relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-600 to-blue-700 p-8 text-white shadow-2xl shadow-indigo-900/20 transition-all duration-500 hover:-translate-y-1 hover:shadow-indigo-900/40">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-[60px] translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-700"></div>
               <h3 className="text-xl font-black mb-4 tracking-tight relative z-10">Emergency Profile</h3>

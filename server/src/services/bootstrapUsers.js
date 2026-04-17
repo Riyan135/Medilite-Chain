@@ -1,12 +1,10 @@
 import bcrypt from 'bcryptjs';
-import crypto from 'node:crypto';
 
 import User from '../models/User.js';
+import { generateDoctorIdCandidate } from './doctorIdentity.js';
 
 const normalizeEmail = (value) => value?.trim().toLowerCase();
 const normalizeName = (value) => value?.trim();
-const generateDoctorIdCandidate = () => `DOC-${crypto.randomInt(100000, 999999)}`;
-
 const ensureDoctorIds = async () => {
   const doctorsWithoutIds = await User.find({
     role: 'DOCTOR',

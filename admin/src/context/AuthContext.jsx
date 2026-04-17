@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../api/api';
 
 const AuthContext = createContext();
-const DOCTOR_STORAGE_KEY = 'medilite_doctor_user';
+const DOCTOR_STORAGE_KEY = 'medilite_doctor_token';
 const LEGACY_STORAGE_KEY = 'medilite_user';
 
 export const AuthProvider = ({ children }) => {
@@ -9,30 +10,51 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Keep existing doctor sessions working while moving this portal to its own storage key.
-    const storedDoctorUser =
-      localStorage.getItem(DOCTOR_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    const restoreSession = async () => {
+      const storedDoctorToken = localStorage.getItem(DOCTOR_STORAGE_KEY);
+      const legacyUser = localStorage.getItem(LEGACY_STORAGE_KEY);
 
-    if (storedDoctorUser) {
+      if (!storedDoctorToken && legacyUser) {
+        try {
+          const parsedLegacyUser = JSON.parse(legacyUser);
+          if (parsedLegacyUser?.role === 'DOCTOR' && parsedLegacyUser?.token) {
+            localStorage.setItem(DOCTOR_STORAGE_KEY, parsedLegacyUser.token);
+          }
+        } catch (error) {
+          console.error('Failed to restore doctor token from legacy storage:', error);
+        }
+      }
+
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+
+      const token = localStorage.getItem(DOCTOR_STORAGE_KEY);
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const parsedUser = JSON.parse(storedDoctorUser);
-
-        if (parsedUser?.role === 'DOCTOR') {
-          setUser(parsedUser);
-          localStorage.setItem(DOCTOR_STORAGE_KEY, JSON.stringify(parsedUser));
+        const response = await api.get('/auth/me');
+        if (response.data.user?.role === 'DOCTOR') {
+          setUser({ ...response.data.user, token });
+        } else {
+          localStorage.removeItem(DOCTOR_STORAGE_KEY);
         }
       } catch (error) {
         console.error('Failed to restore doctor session:', error);
+        localStorage.removeItem(DOCTOR_STORAGE_KEY);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
 
-    setLoading(false);
+    restoreSession();
   }, []);
 
   const login = (userData) => {
     setUser(userData);
-    localStorage.setItem(DOCTOR_STORAGE_KEY, JSON.stringify(userData));
-    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(userData));
+    localStorage.setItem(DOCTOR_STORAGE_KEY, userData.token);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   };
 
   const logout = () => {
@@ -43,8 +65,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = (userData) => {
     setUser(userData);
-    localStorage.setItem(DOCTOR_STORAGE_KEY, JSON.stringify(userData));
-    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(userData));
+    localStorage.setItem(DOCTOR_STORAGE_KEY, userData.token);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   };
 
   return (

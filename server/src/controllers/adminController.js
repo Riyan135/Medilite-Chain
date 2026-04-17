@@ -131,6 +131,8 @@ export const getAllDoctors = async (req, res) => {
         name: doctor.name,
         email: doctor.email,
         phone: doctor.phone || null,
+        doctorId: doctor.doctorId || null,
+        specialization: doctor.specialization || null,
       }))
     );
   } catch (error) {

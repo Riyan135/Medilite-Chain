@@ -32,19 +32,60 @@ const PORT = process.env.PORT || 5000;
 const LOG_LEVEL = process.env.LOG_LEVEL || 'minimal';
 const isVerboseLogging = LOG_LEVEL === 'debug' || LOG_LEVEL === 'verbose';
 const isVercel = process.env.VERCEL === '1';
+const isProduction = process.env.NODE_ENV === 'production';
 const httpServer = isVercel ? null : createServer(app);
+const defaultAllowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
+];
+const configuredAllowedOrigins = [
+  process.env.CLIENT_URL,
+  ...(process.env.CORS_ORIGINS?.split(',') || []),
+]
+  .map((origin) => origin?.trim())
+  .filter(Boolean);
+const allowedOrigins = [...new Set([...defaultAllowedOrigins, ...configuredAllowedOrigins])];
 const ioStub = {
   emit: () => {},
   to: () => ({ emit: () => {} }),
 };
 
+const isLocalDevOrigin = (origin) => {
+  if (!origin) {
+    return false;
+  }
+
+  try {
+    const { protocol, hostname } = new URL(origin);
+    return (
+      (protocol === 'http:' || protocol === 'https:') &&
+      (hostname === 'localhost' || hostname === '127.0.0.1')
+    );
+  } catch {
+    return false;
+  }
+};
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin) || (!isProduction && isLocalDevOrigin(origin))) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin ${origin}`));
+  },
+  credentials: true,
+};
+
 const io = isVercel
   ? ioStub
   : new Server(httpServer, {
-      cors: {
-        origin: '*',
-        credentials: false,
-      },
+      cors: corsOptions,
     });
 app.set('io', io);
 
@@ -100,12 +141,7 @@ if (!isVercel) {
 
 app.use(helmet());
 
-app.use(
-  cors({
-    origin: '*',
-    credentials: false,
-  })
-);
+app.use(cors(corsOptions));
 
 app.use(
   morgan(isVerboseLogging ? 'dev' : 'tiny', {

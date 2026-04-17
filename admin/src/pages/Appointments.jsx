@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Trash2, UserRound, Stethoscope } from 'lucide-react';
+import { Calendar, Clock, Trash2, UserRound, Stethoscope, CheckCircle2, XCircle } from 'lucide-react';
 
 import Sidebar from '../components/Sidebar';
 import AdminTopbar from '../components/AdminTopbar';
@@ -46,10 +46,24 @@ const Appointments = () => {
     rejected: appointments.filter((appointment) => appointment.status === 'REJECTED').length,
   };
 
+  const handleUpdateStatus = async (appointmentId, status) => {
+    try {
+      await api.patch(`/appointments/${appointmentId}/status`, { status });
+      toast.success(status === 'ACCEPTED' ? 'Appointment Accepted' : 'Appointment Rejected');
+      setAppointments((current) => 
+        current.map(appt => appt.id === appointmentId ? { ...appt, status } : appt)
+      );
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      toast.error('Failed to update appointment status');
+    }
+  };
+
   const getAppointmentTone = (appointment) => {
     const reason = appointment.reason?.toLowerCase() || '';
     if (reason.includes('urgent') || reason.includes('emergency')) return 'urgent';
     if (appointment.status === 'ACCEPTED') return 'completed';
+    if (appointment.status === 'REJECTED') return 'rejected';
     return 'pending';
   };
 
@@ -107,29 +121,53 @@ const Appointments = () => {
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                           getAppointmentTone(appointment) === 'completed'
-                            ? 'bg-green-100 text-[#16a34a]'
-                            : getAppointmentTone(appointment) === 'urgent'
-                              ? 'bg-red-100 text-[#dc2626]'
-                              : 'bg-yellow-100 text-[#b45309]'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : getAppointmentTone(appointment) === 'rejected'
+                              ? 'bg-slate-100 text-slate-600'
+                              : getAppointmentTone(appointment) === 'urgent'
+                                ? 'bg-red-100 text-[#dc2626]'
+                                : 'bg-amber-100 text-amber-700'
                         }`}>
                           {getAppointmentTone(appointment) === 'completed'
-                            ? 'Completed'
-                            : getAppointmentTone(appointment) === 'urgent'
-                              ? 'Urgent'
-                              : 'Pending'}
+                            ? 'Accepted'
+                            : getAppointmentTone(appointment) === 'rejected'
+                              ? 'Rejected'
+                              : getAppointmentTone(appointment) === 'urgent'
+                                ? 'Urgent'
+                                : 'Pending'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-500 max-w-xs truncate">
                         {appointment.reason || 'No reason provided'}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleDelete(appointment.id)}
-                          className="inline-flex items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Delete
-                        </button>
+                        <div className="flex items-center justify-end gap-2 text-sm">
+                          {appointment.status === 'PENDING' && (
+                            <>
+                              <button
+                                onClick={() => handleUpdateStatus(appointment.id, 'ACCEPTED')}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors font-bold"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => handleUpdateStatus(appointment.id, 'REJECTED')}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors font-bold"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => handleDelete(appointment.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-rose-100 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors font-bold"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

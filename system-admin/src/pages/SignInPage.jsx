@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail, KeyRound, ArrowRight, Sparkles, UserRound, LockKeyhole } from 'lucide-react';
+import { ShieldCheck, Mail, LockKeyhole, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 import toast from 'react-hot-toast';
@@ -8,55 +8,32 @@ import toast from 'react-hot-toast';
 const SignInPage = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [loadingAction, setLoadingAction] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const normalizedName = useMemo(() => name.trim(), [name]);
   const normalizedEmail = useMemo(() => email.trim().toLowerCase(), [email]);
-
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    if (!normalizedName || !normalizedEmail) {
-      toast.error('Enter your name and email to receive an OTP');
-      return;
-    }
-
-    setLoadingAction('send');
-    try {
-      await api.post('/auth/staff-request-otp', { name: normalizedName, email: normalizedEmail });
-      setOtpSent(true);
-      toast.success(`OTP sent to ${normalizedEmail}`);
-    } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Failed to send OTP';
-      toast.error(errorMsg);
-    } finally {
-      setLoadingAction('');
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!normalizedName || !normalizedEmail || !otp.trim()) {
-      toast.error('Enter your name, email and OTP');
+    if (!normalizedEmail || !password.trim()) {
+      toast.error('Enter your email and password');
       return;
     }
 
-    setLoadingAction('verify');
+    setLoading(true);
     try {
-      const response = await api.post('/auth/staff-verify-otp', {
-        name: normalizedName,
+      const response = await api.post('/auth/login', {
         email: normalizedEmail,
-        otp: otp.trim(),
+        password: password.trim(),
       });
 
       const { user: loggedInUser, token } = response.data;
 
       if (loggedInUser.role !== 'ADMIN') {
         toast.error('Only admin accounts can use this portal');
-        setLoadingAction('');
+        setLoading(false);
         return;
       }
 
@@ -74,7 +51,7 @@ const SignInPage = () => {
       const errorMsg = err.response?.data?.error || 'Authentication failed';
       toast.error(errorMsg);
     } finally {
-      setLoadingAction('');
+      setLoading(false);
     }
   };
 
@@ -106,7 +83,7 @@ const SignInPage = () => {
           <div className="hidden lg:block space-y-8 transition-all duration-700">
             <div className="inline-flex items-center gap-3 rounded-full border border-white/60 bg-white/55 px-5 py-2 text-sm font-semibold text-sky-700 backdrop-blur-xl shadow-[0_0_0_1px_rgba(255,255,255,0.4)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_16px_45px_rgba(59,130,246,0.18)]">
               <Sparkles className="h-4 w-4 text-sky-500" />
-              OTP secured admin access
+              Credential-based admin access
             </div>
             <div className="space-y-5">
               <h1 className="text-5xl xl:text-6xl font-black leading-tight tracking-tight">
@@ -116,13 +93,12 @@ const SignInPage = () => {
                 </span>
               </h1>
               <p className="max-w-xl text-lg text-slate-600 leading-relaxed">
-                Enter your name and email, receive a one-time code, and move into the platform-governance portal.
-                This workspace is separated from patient care and focuses on access, monitoring, audit trails, policies, and system controls.
+                Sign in with the configured admin email and password to access the platform-governance portal for monitoring, user management, policies, and system controls.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <InfoCard title="Email First" description="Request a secure OTP directly to your inbox before entering the system console." />
-              <InfoCard title="Admin Ready" description="This workspace is dedicated to system admins for platform control, monitoring, integrations, and governance." />
+              <InfoCard title="Credential Access" description="Use the configured system-admin email and password to access the governance console." />
+              <InfoCard title="Admin Only" description="This workspace is dedicated to platform administration and is restricted to admin accounts." />
             </div>
           </div>
 
@@ -133,30 +109,11 @@ const SignInPage = () => {
               </div>
               <h2 className="text-3xl font-black tracking-tight">System Admin Sign In</h2>
               <p className="mt-2 text-sm font-medium text-slate-500">
-                Add your name and email, request an OTP, and continue to the admin portal.
+                Enter your admin email and password to continue to the admin portal.
               </p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <label className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
-                  Admin Name
-                </label>
-                <div className="group relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                    <UserRound className="h-5 w-5 text-sky-500 transition-colors duration-300 group-focus-within:text-blue-700" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-2xl border border-white/80 bg-white/75 py-4 pl-11 pr-4 font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-sky-400/70 focus:bg-white focus:ring-4 focus:ring-sky-400/10"
-                    placeholder="Enter admin name"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <label className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
                   Email Address
@@ -178,49 +135,41 @@ const SignInPage = () => {
 
               <div className="space-y-2">
                 <label className="ml-1 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
-                  One-Time Password
+                  Password
                 </label>
                 <div className="group relative">
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                    <KeyRound className="h-5 w-5 text-violet-500 transition-colors duration-300 group-focus-within:text-indigo-700" />
+                    <ShieldCheck className="h-5 w-5 text-violet-500 transition-colors duration-300 group-focus-within:text-indigo-700" />
                   </div>
                   <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={4}
+                    type={showPassword ? 'text' : 'password'}
                     required
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="w-full rounded-2xl border border-white/80 bg-white/75 py-4 pl-11 pr-4 font-semibold tracking-[0.35em] text-slate-800 placeholder:tracking-normal placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-violet-400/70 focus:bg-white focus:ring-4 focus:ring-violet-400/10"
-                    placeholder="Enter OTP"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-2xl border border-white/80 bg-white/75 py-4 pl-11 pr-12 font-semibold text-slate-800 placeholder:text-slate-400 outline-none transition-all duration-300 focus:border-violet-400/70 focus:bg-white focus:ring-4 focus:ring-violet-400/10"
+                    placeholder="Enter password"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-violet-600"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 pt-2">
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={loadingAction !== ''}
-                  className="rounded-2xl border border-sky-300/40 bg-sky-100/80 px-5 py-4 font-black text-sky-700 transition-all duration-300 hover:-translate-y-1 hover:border-sky-400/60 hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loadingAction === 'send' ? 'Sending OTP...' : otpSent ? 'Resend OTP' : 'Send OTP'}
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={loadingAction !== '' || !otpSent}
-                  className="group flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-5 py-4 font-black text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_14px_45px_rgba(59,130,246,0.28)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loadingAction === 'verify' ? 'Verifying...' : 'Go To Dashboard'}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-5 py-4 font-black text-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_14px_45px_rgba(59,130,246,0.28)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Signing In...' : 'Go To Dashboard'}
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </button>
 
               <div className="rounded-2xl border border-white/70 bg-white/60 px-4 py-3 text-sm text-slate-600">
-                {otpSent
-                  ? `We sent a 4-digit OTP to ${normalizedEmail || 'your email'}.`
-                  : 'Request an OTP first, then enter it here to access the admin portal.'}
+                Use the configured system-admin credentials from the server environment to access this portal.
               </div>
             </form>
           </div>

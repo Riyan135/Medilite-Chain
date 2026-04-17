@@ -1,4 +1,4 @@
-import { getSystemStats, getAllUsers, deleteUser, approveDoctor } from '../controllers/admin.js';
+import { getSystemStats, getAllUsers, deleteUser, approveDoctor, createDoctorAccount } from '../controllers/admin.js';
 import { getAllPatients, getPatientDetails, assignDoctor, getAllDoctors } from '../controllers/adminController.js';
 import express from 'express';
 
@@ -14,5 +14,6 @@ router.get('/patients', getAllPatients);
 router.get('/patients/:id', getPatientDetails);
 router.post('/assign-doctor', assignDoctor);
 router.get('/doctors', getAllDoctors);
+router.post('/doctors', createDoctorAccount);
 
 export default router;
