@@ -10,7 +10,7 @@ import Sidebar from '../components/Sidebar';
 import ConsultationCallModal from '../components/ConsultationCallModal';
 import { getSocket } from '../lib/socket';
 
-const Card = ({ title, value, icon: Icon, color, onClick, interactive = false }) => (
+const Card = ({ title, value, icon: Icon, color, onClick, interactive = false, progress = 0 }) => (
   <button
     type="button"
     onClick={onClick}
@@ -27,8 +27,14 @@ const Card = ({ title, value, icon: Icon, color, onClick, interactive = false })
     </div>
     <h3 className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">{title}</h3>
     <p className="text-4xl font-black text-slate-900 tracking-tight">{value}</p>
-    <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-      <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 transition-all duration-700 group-hover:w-5/6" />
+    <div className="mt-4 flex items-center gap-3">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-blue-500 via-cyan-400 to-indigo-500 transition-all duration-700 group-hover:brightness-110"
+          style={{ width: `${Math.min(progress, 100)}%` }}
+        />
+      </div>
+      <span className="text-xs font-black text-slate-400 tabular-nums min-w-[2.5rem] text-right">{Math.min(progress, 100)}%</span>
     </div>
   </button>
 );
@@ -418,28 +424,32 @@ const PatientDashboard = () => {
           <Card
             title="Total Records"
             value={loading ? "..." : stats?.totalRecords || "0"}
-            icon={PlusCircle}
+            icon={FileText}
             color="bg-blue-600"
+            progress={loading ? 0 : Math.min((stats?.totalRecords || 0) * 10, 100)}
           />
           <Card
             title="Medicine Stock"
             value={loading ? "..." : inventory.length || "0"}
             icon={Pill}
             color="bg-indigo-600"
+            progress={loading ? 0 : Math.min(inventory.length * 10, 100)}
           />
           <Card
             title="Upcoming Reminders"
             value={loading ? "..." : stats?.activeReminders || "0"}
-            icon={ArrowUpRight}
+            icon={CalendarClock}
             color="bg-green-600"
+            progress={loading ? 0 : Math.min((stats?.activeReminders || 0) * 20, 100)}
           />
           <Card
             title="Health Score"
             value={loading ? "..." : stats?.healthScore || "N/A"}
-            icon={Shield}
-            color="bg-indigo-600"
+            icon={Heart}
+            color="bg-rose-600"
             interactive
             onClick={() => setShowHealthGraph(true)}
+            progress={loading ? 0 : (parseInt(stats?.healthScore) || 0)}
           />
         </section>
 
