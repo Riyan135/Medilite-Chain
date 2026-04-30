@@ -151,7 +151,7 @@ export const login = async (req, res) => {
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Failed to sign in' });
+    res.status(500).json({ error: error.message || 'Failed to sign in' });
   }
 };
 
@@ -197,7 +197,7 @@ export const staffLogin = async (req, res) => {
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
     console.error('Staff login error:', error);
-    res.status(500).json({ error: 'Failed to sign in' });
+    res.status(500).json({ error: error.message || 'Failed to sign in' });
   }
 };
 
