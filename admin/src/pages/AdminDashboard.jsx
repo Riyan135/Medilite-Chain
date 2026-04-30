@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../lib/socket';
 import ConsultationCallModal from '../components/ConsultationCallModal';
+import { useNavigate } from 'react-router-dom';
 
 const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
   const themes = {
@@ -63,6 +64,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -383,7 +385,7 @@ const AdminDashboard = () => {
                           </button>
                           <button 
                             className="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
-                            onClick={() => window.location.href = `/patient/${patient.id}`}
+                            onClick={() => navigate(`/patient/${patient.id}`)}
                             title="View Records"
                           >
                             <ArrowRight className="w-5 h-5" />
