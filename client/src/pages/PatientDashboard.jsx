@@ -1,4 +1,4 @@
-import { PlusCircle, ArrowUpRight, Shield, Heart, FileText, Pill, MessageSquare, AlertTriangle, User, CalendarClock } from 'lucide-react';
+import { PlusCircle, ArrowUpRight, Shield, Heart, FileText, Pill, MessageSquare, AlertTriangle, User, CalendarClock, Users } from 'lucide-react';
 import MedicalRecordUpload from '../components/MedicalRecordUpload';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -294,6 +294,13 @@ const PatientDashboard = () => {
             </div>
           </div>
           <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/family-profiles')}
+              className="flex items-center justify-center w-14 h-14 rounded-full border border-white/70 bg-white/80 font-black text-slate-700 shadow-lg shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
+              title="Family Profiles"
+            >
+              <Users className="w-5 h-5 text-indigo-600" />
+            </button>
             <button
               onClick={async () => {
                 try {

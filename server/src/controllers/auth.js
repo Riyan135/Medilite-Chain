@@ -11,6 +11,7 @@ const toAuthUser = (user) => ({
   id: user._id.toString(),
   email: user.email,
   name: user.name,
+  phone: user.phone || null,
   role: user.role,
   doctorId: user.doctorId || null,
   specialization: user.specialization || null,
