@@ -60,7 +60,7 @@ const SignInPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
+    <div className="min-h-screen bg-transparent flex items-center justify-center p-6 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
       <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
       <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-400/30 to-indigo-400/30 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 animate-float pointer-events-none"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-purple-400/20 to-blue-400/20 rounded-full blur-[120px] translate-x-1/2 translate-y-1/2 animate-float pointer-events-none" style={{ animationDelay: '2s' }}></div>

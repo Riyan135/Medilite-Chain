@@ -109,7 +109,7 @@ const Records = () => {
   });
 
   return (
-    <div className="flex min-h-screen bg-[#f0f4f8]">
+    <div className="flex min-h-screen bg-transparent">
       <Sidebar role="admin" />
       <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
         <div className="flex justify-between items-center mb-10 flex-wrap gap-4">

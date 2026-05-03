@@ -106,7 +106,7 @@ export const summarizeRecord = async (req, res) => {
     res.status(200).json(await withDoctorName(record));
   } catch (error) {
     console.error('Error summarizing record:', error);
-    res.status(500).json({ error: 'Failed to summarize record' });
+    res.status(500).json({ error: error.message || 'Failed to summarize record' });
   }
 };
 
@@ -149,6 +149,6 @@ export const getHealthOverview = async (req, res) => {
     res.status(200).json(overview);
   } catch (error) {
     console.error('Error generating health overview:', error);
-    res.status(500).json({ error: 'Failed to generate health overview' });
+    res.status(500).json({ error: error.message || 'Failed to generate health overview' });
   }
 };

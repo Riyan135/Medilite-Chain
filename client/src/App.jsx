@@ -17,6 +17,7 @@ import EmergencySOS from './pages/EmergencySOS';
 import FamilyProfiles from './pages/FamilyProfiles';
 import AppointmentBooking from './pages/AppointmentBooking';
 import Consultations from './pages/Consultations';
+import { SocketProvider } from './context/SocketContext';
 
 const systemAdminUrl = import.meta.env.VITE_SYSTEM_ADMIN_URL || 'http://localhost:5175';
 
@@ -80,6 +81,7 @@ function App() {
   return (
     <AuthProvider>
       <Toaster position="top-right" reverseOrder={false} />
+      <SocketProvider>
       <Router>
         <Routes>
           {/* Public Routes */}
@@ -216,6 +218,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
+      </SocketProvider>
     </AuthProvider>
   );
 }

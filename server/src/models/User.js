@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema(
     age: { type: Number, default: null },
     dateOfBirth: { type: Date, default: null },
     gender: { type: String, default: null },
+    isBlocked: { type: Boolean, default: false },
+    isFlagged: { type: Boolean, default: false },
   },
   {
     timestamps: true,

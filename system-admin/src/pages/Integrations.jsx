@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bot, Mail, MapPinned, MessageSquareMore, PlugZap } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import Sidebar from '../components/Sidebar';
 import AdminTopbar from '../components/AdminTopbar';
@@ -12,20 +13,20 @@ const integrations = [
 ];
 
 const Integrations = () => (
-  <div className="flex min-h-screen bg-[#f0f4f8]">
+  <div className="flex min-h-screen bg-transparent">
     <Sidebar />
-    <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
+    <motion.main initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
       <AdminTopbar
         title="Integrations"
         subtitle="See the external capabilities the platform depends on and where system-admin oversight matters."
       />
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        {integrations.map((integration) => (
-          <div key={integration.title} className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+        {integrations.map((integration, index) => (
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: index * 0.1, duration: 0.3 }} key={integration.title} className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300 group">
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-4">
-                <div className="rounded-2xl bg-blue-50 p-3 text-blue-600">
+                <div className="rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 p-3 text-indigo-600 shadow-inner group-hover:scale-110 transition-transform duration-300">
                   <integration.icon className="h-6 w-6" />
                 </div>
                 <div>
@@ -35,12 +36,12 @@ const Integrations = () => (
               </div>
               <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-indigo-700">{integration.status}</span>
             </div>
-          </div>
+          </motion.div>
         ))}
 
-        <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm xl:col-span-2">
+        <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] xl:col-span-2">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-slate-100 p-3 text-slate-700">
+            <div className="rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 p-3 text-slate-700 shadow-inner">
               <PlugZap className="h-5 w-5" />
             </div>
             <h2 className="text-xl font-black text-slate-900">Integration Governance Notes</h2>
@@ -52,10 +53,10 @@ const Integrations = () => (
           </div>
         </div>
       </section>
-    </main>
+    </motion.main>
   </div>
 );
 
-const Note = ({ text }) => <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">{text}</div>;
+const Note = ({ text }) => <div className="rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors duration-300 px-5 py-4 text-sm font-medium text-slate-600 border border-slate-100 hover:border-slate-300 shadow-sm">{text}</div>;
 
 export default Integrations;

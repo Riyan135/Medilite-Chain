@@ -4,11 +4,11 @@ import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
-const MedicalRecordUpload = ({ targetId, onClose }) => {
+const MedicalRecordUpload = ({ targetId, onClose, initialType = 'REPORT' }) => {
   const { user } = useAuth();
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState('');
-  const [type, setType] = useState('REPORT');
+  const [type, setType] = useState(initialType);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [isListeningTitle, setIsListeningTitle] = useState(false);

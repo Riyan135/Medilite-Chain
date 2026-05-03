@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle, Share2, Sparkles, Languages, ShieldCheck } from 'lucide-react';
+import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle, Share2, Sparkles, Languages, ShieldCheck, Plus, ChevronDown, FlaskConical, Stethoscope, Receipt } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import MedicalRecordUpload from '../components/MedicalRecordUpload';
 
 const languageOptions = [
   'English',
@@ -33,7 +34,9 @@ const Records = () => {
   const [generatingOverview, setGeneratingOverview] = useState(false);
   const [showOverviewModal, setShowOverviewModal] = useState(false);
   const [healthOverview, setHealthOverview] = useState(null);
-
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadType, setUploadType] = useState('REPORT');
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
 
 
   useEffect(() => {
@@ -178,18 +181,57 @@ const Records = () => {
             <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mt-5">Medical Records</h1>
             <p className="text-lg text-slate-500 mt-3 font-medium max-w-2xl">Access, translate, summarize, and share your medical documents from one polished records workspace.</p>
           </div>
-          <button
-            onClick={handleGenerateOverview}
-            disabled={generatingOverview || records.length === 0}
-            className="flex items-center px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-600/25 hover:bg-indigo-700 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-600/30 transition-all duration-300 disabled:opacity-50 disabled:hover:-translate-y-0 w-full md:w-auto justify-center"
-          >
-            {generatingOverview ? (
-              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3" />
-            ) : (
-              <BrainCircuit className="w-6 h-6 mr-3" />
-            )}
-            Whole Picture Summary
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto z-50">
+            <div className="relative">
+              <button
+                onClick={() => setShowUploadMenu(!showUploadMenu)}
+                className="flex items-center px-8 py-4 bg-white text-blue-600 rounded-2xl font-black shadow-xl shadow-blue-600/10 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-600/20 transition-all duration-300 w-full sm:w-auto justify-center border border-blue-100 relative z-20"
+              >
+                <Plus className="w-6 h-6 mr-2" />
+                Upload Record
+                <ChevronDown className={`w-5 h-5 ml-3 transition-transform ${showUploadMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showUploadMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowUploadMenu(false)}></div>
+                  <div className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 mt-3 bg-white rounded-2xl shadow-2xl border border-slate-100 p-2 z-50 min-w-[280px] animate-in fade-in slide-in-from-top-4">
+                    <div className="grid grid-cols-1 gap-1">
+                      <button onClick={() => { setUploadType('REPORT'); setShowUploadModal(true); setShowUploadMenu(false); }} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors text-left group">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors"><FileText className="w-5 h-5" /></div>
+                        <div><p className="font-bold text-slate-800 text-sm">Medical Report</p><p className="text-[10px] text-slate-500 font-medium mt-0.5">General medical documents</p></div>
+                      </button>
+                      <button onClick={() => { setUploadType('LAB_TEST'); setShowUploadModal(true); setShowUploadMenu(false); }} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors text-left group">
+                        <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors"><FlaskConical className="w-5 h-5" /></div>
+                        <div><p className="font-bold text-slate-800 text-sm">Lab Test Result</p><p className="text-[10px] text-slate-500 font-medium mt-0.5">Blood tests, scans, etc.</p></div>
+                      </button>
+                      <button onClick={() => { setUploadType('PRESCRIPTION'); setShowUploadModal(true); setShowUploadMenu(false); }} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors text-left group">
+                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-colors"><Stethoscope className="w-5 h-5" /></div>
+                        <div><p className="font-bold text-slate-800 text-sm">Prescription</p><p className="text-[10px] text-slate-500 font-medium mt-0.5">Doctor's prescriptions</p></div>
+                      </button>
+                      <button onClick={() => { setUploadType('BILL'); setShowUploadModal(true); setShowUploadMenu(false); }} className="flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors text-left group">
+                        <div className="p-3 bg-amber-50 text-amber-600 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-colors"><Receipt className="w-5 h-5" /></div>
+                        <div><p className="font-bold text-slate-800 text-sm">Hospital Bill</p><p className="text-[10px] text-slate-500 font-medium mt-0.5">Invoices and receipts</p></div>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={handleGenerateOverview}
+              disabled={generatingOverview || records.length === 0}
+              className="flex items-center px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-600/25 hover:bg-indigo-700 hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-600/30 transition-all duration-300 disabled:opacity-50 disabled:hover:-translate-y-0 w-full sm:w-auto justify-center z-10"
+            >
+              {generatingOverview ? (
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3" />
+              ) : (
+                <BrainCircuit className="w-6 h-6 mr-3" />
+              )}
+              Whole Picture Summary
+            </button>
+          </div>
         </header>
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
@@ -643,6 +685,16 @@ const Records = () => {
             </button>
           </div>
         </div>
+      )}
+      {showUploadModal && (
+        <MedicalRecordUpload
+          targetId={user.id}
+          initialType={uploadType}
+          onClose={() => {
+            setShowUploadModal(false);
+            fetchRecords();
+          }}
+        />
       )}
     </div>
   );

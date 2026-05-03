@@ -68,42 +68,7 @@ const PatientDetails = () => {
     fetchPatientDetails();
   }, [patientId]);
 
-  useEffect(() => {
-    let socket;
 
-    if (doctorUser?.id) {
-      socket = getSocket();
-      socket.emit('join_room', { room: doctorUser.id });
-
-      const handleCallInvite = (data) => {
-        setIncomingCall({
-          callId: data.callId,
-          consultationId: data.consultationId,
-          mode: data.mode,
-          peerUserId: data.caller.id,
-          peerUserName: data.caller.name,
-          isInitiator: false,
-        });
-      };
-
-      const handleCallEnd = (data) => {
-        if (activeCall?.callId === data.callId) {
-          setActiveCall(null);
-          toast('Call ended');
-        }
-      };
-
-      socket.on('consultation_call_invite', handleCallInvite);
-      socket.on('consultation_call_end', handleCallEnd);
-
-      return () => {
-        socket.off('consultation_call_invite', handleCallInvite);
-        socket.off('consultation_call_end', handleCallEnd);
-      };
-    }
-
-    return undefined;
-  }, [doctorUser?.id, activeCall?.callId]);
 
   const fetchPatientDetails = async () => {
     try {
@@ -138,7 +103,7 @@ const PatientDetails = () => {
     }
   };
 
-  const startCall = (mode) => {
+  const initiateCall = (mode) => {
     const latestNote = patient?.patientProfile?.notes?.[0];
     const consultationId = latestNote?.id;
 
@@ -147,72 +112,13 @@ const PatientDetails = () => {
       return;
     }
 
-    const socket = getSocket();
     const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const callerInfo = {
+      id: doctorUser.id,
+      name: `Dr. ${doctorUser.name}`,
+    };
 
-    setActiveCall({
-      callId,
-      consultationId,
-      mode,
-      peerUserId: patient.id,
-      peerUserName: patient.name,
-      isInitiator: true,
-    });
-
-    socket.emit('consultation_call_invite', {
-      callId,
-      consultationId,
-      targetUserId: patient.id,
-      mode,
-      caller: {
-        id: doctorUser.id,
-        name: `Dr. ${doctorUser.name}`,
-      },
-    });
-  };
-
-  const acceptIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_accept', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      mode: incomingCall.mode,
-      acceptedBy: {
-        id: doctorUser.id,
-        name: `Dr. ${doctorUser.name}`,
-      },
-    });
-    setActiveCall(incomingCall);
-    setIncomingCall(null);
-  };
-
-  const rejectIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_reject', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      rejectedBy: {
-        id: doctorUser.id,
-        name: `Dr. ${doctorUser.name}`,
-      },
-    });
-    setIncomingCall(null);
-  };
-
-  const closeCall = (notifyPeer = true) => {
-    if (notifyPeer && activeCall) {
-      const socket = getSocket();
-      socket.emit('consultation_call_end', {
-        callId: activeCall.callId,
-        consultationId: activeCall.consultationId,
-        targetUserId: activeCall.peerUserId,
-      });
-    }
-    setActiveCall(null);
+    startCall(callId, consultationId, patient.id, mode, callerInfo);
   };
 
   if (loading) {
@@ -235,7 +141,7 @@ const PatientDetails = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-transparent">
       <Sidebar role="doctor" />
       <main className="flex-1 overflow-y-auto p-8">
         <button 
@@ -262,14 +168,14 @@ const PatientDetails = () => {
                   <MessageSquare className="w-5 h-5" />
                 </button>
                 <button 
-                  onClick={() => startCall('voice')}
+                  onClick={() => initiateCall('voice')}
                   className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
                   title="Voice Call Patient"
                 >
                   <Phone className="w-5 h-5" />
                 </button>
                 <button 
-                  onClick={() => startCall('video')}
+                  onClick={() => initiateCall('video')}
                   className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
                   title="Video Call Patient"
                 >

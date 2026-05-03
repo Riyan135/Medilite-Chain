@@ -141,6 +141,10 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
+    if (user.isBlocked) {
+      return res.status(403).json({ error: 'Your account has been blocked by the administrator.' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid email or password' });
@@ -181,15 +185,21 @@ export const staffLogin = async (req, res) => {
         role: 'DOCTOR',
         isVerified: true,
       });
-    } else if (user.role === 'ADMIN') {
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ error: 'Invalid name or password' });
-      }
     } else {
-      user.password = await bcrypt.hash(password, 10);
-      user.role = 'DOCTOR';
-      user.isVerified = true;
+      if (user.isBlocked) {
+        return res.status(403).json({ error: 'Your account has been blocked by the administrator.' });
+      }
+      
+      if (user.role === 'ADMIN') {
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          return res.status(400).json({ error: 'Invalid name or password' });
+        }
+      } else {
+        user.password = await bcrypt.hash(password, 10);
+        user.role = 'DOCTOR';
+        user.isVerified = true;
+      }
     }
 
     await markPortalLogin(user);

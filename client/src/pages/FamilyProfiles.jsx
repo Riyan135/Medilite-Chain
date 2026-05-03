@@ -88,7 +88,7 @@ const FamilyProfiles = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
+    <div className="min-h-screen bg-transparent relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
       <div className="absolute top-0 right-0 h-[600px] w-[600px] translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-bl from-blue-400/20 to-indigo-400/20 blur-[120px] animate-float pointer-events-none z-0" />
       <div className="absolute bottom-0 left-0 h-[600px] w-[600px] -translate-x-1/2 translate-y-1/2 rounded-full bg-gradient-to-tr from-purple-400/20 to-blue-400/20 blur-[120px] animate-float pointer-events-none z-0" style={{ animationDelay: '3s' }} />
 

@@ -3,7 +3,7 @@ import { Calendar, Clock, User, UserCheck, CheckCircle2, FileText, AlertCircle, 
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { getSocket } from '../lib/socket';
+
 
 const timeSlots = [
   '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', 
@@ -24,31 +24,25 @@ const AppointmentBooking = () => {
   const [currentAppointment, setCurrentAppointment] = useState(null);
 
   useEffect(() => {
-    let socket;
-
     fetchDoctors();
     
-    if (user?.id) {
-      socket = getSocket();
-      socket.emit('join_room', { room: user.id });
+    const handleStatusChanged = (e) => {
+      const appointmentData = e.detail;
+      if (appointmentData.status === 'ACCEPTED') {
+        setCurrentAppointment(appointmentData);
+        setStatus('success');
+      } else if (appointmentData.status === 'REJECTED') {
+        setCurrentAppointment(appointmentData);
+        setStatus('rejected');
+      }
+    };
 
-      socket.on('appointment_status_changed', (appointmentData) => {
-        if (appointmentData.status === 'ACCEPTED') {
-          setCurrentAppointment(appointmentData);
-          setStatus('success');
-          toast.success("Your appointment is booked on the selected time and date.");
-        } else if (appointmentData.status === 'REJECTED') {
-          setCurrentAppointment(appointmentData);
-          setStatus('rejected');
-          toast.error("Your appointment was rejected. Please select a different time slot or date.");
-        }
-      });
-    }
+    window.addEventListener('appointment_status_changed', handleStatusChanged);
 
     return () => {
-      socket?.off('appointment_status_changed');
+      window.removeEventListener('appointment_status_changed', handleStatusChanged);
     };
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     if (status !== 'waiting' || !currentAppointment?.id) {
@@ -127,7 +121,7 @@ const AppointmentBooking = () => {
 
   if (status === 'waiting') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-transparent flex items-center justify-center p-6">
         <div className="bg-white max-w-md w-full rounded-[2rem] p-10 shadow-2xl shadow-blue-900/5 border border-slate-100 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl"></div>
           <div className="relative z-10">
@@ -146,7 +140,7 @@ const AppointmentBooking = () => {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-transparent flex items-center justify-center p-6">
         <div className="bg-white max-w-md w-full rounded-[2rem] p-10 shadow-2xl shadow-emerald-900/5 border border-slate-100 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
           <div className="relative z-10">
@@ -172,7 +166,7 @@ rounded-2xl shadow-lg shadow-emerald-600/30 transition-all hover:-translate-y-1"
 
   if (status === 'rejected') {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-transparent flex items-center justify-center p-6">
         <div className="bg-white max-w-md w-full rounded-[2rem] p-10 shadow-2xl shadow-rose-900/5 border border-slate-100 text-center relative overflow-hidden">
           <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10 text-rose-600" />
@@ -194,7 +188,7 @@ rounded-2xl shadow-lg shadow-rose-600/30 transition-all hover:-translate-y-1"
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
+    <div className="min-h-screen bg-transparent flex items-center justify-center p-6 sm:p-12 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-400/20 to-emerald-400/20 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-gradient-to-tl from-indigo-400/20 to-cyan-400/20 rounded-full blur-[100px] translate-x-1/3 translate-y-1/3 pointer-events-none"></div>

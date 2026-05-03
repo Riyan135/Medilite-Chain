@@ -253,7 +253,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f0f4f8] dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300">
+    <div className="flex min-h-screen bg-transparent dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300">
       <Sidebar role="admin" />
       <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
         <AdminTopbar

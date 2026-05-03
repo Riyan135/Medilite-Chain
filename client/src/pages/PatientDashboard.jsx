@@ -7,8 +7,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Chat from '../components/Chat';
 import toast from 'react-hot-toast';
 import Sidebar from '../components/Sidebar';
-import ConsultationCallModal from '../components/ConsultationCallModal';
-import { getSocket } from '../lib/socket';
 
 const Card = ({ title, value, icon: Icon, color, onClick, interactive = false, progress = 0 }) => (
   <button
@@ -213,8 +211,6 @@ const PatientDashboard = () => {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeChat, setActiveChat] = useState(null);
-  const [incomingCall, setIncomingCall] = useState(null);
-  const [activeCall, setActiveCall] = useState(null);
   const [showHealthGraph, setShowHealthGraph] = useState(false);
   const [dashboardName, setDashboardName] = useState(user?.name);
   const [relation, setRelation] = useState('');
@@ -231,42 +227,7 @@ const PatientDashboard = () => {
     }
   }, [targetId, user]);
 
-  useEffect(() => {
-    let socket;
 
-    if (user?.id) {
-      socket = getSocket();
-      socket.emit('join_room', { room: user.id });
-
-      const handleCallInvite = (data) => {
-        setIncomingCall({
-          callId: data.callId,
-          consultationId: data.consultationId,
-          mode: data.mode,
-          peerUserId: data.caller.id,
-          peerUserName: data.caller.name,
-          isInitiator: false,
-        });
-      };
-
-      const handleCallEnd = (data) => {
-        if (activeCall?.callId === data.callId) {
-          setActiveCall(null);
-          toast('Call ended');
-        }
-      };
-
-      socket.on('consultation_call_invite', handleCallInvite);
-      socket.on('consultation_call_end', handleCallEnd);
-
-      return () => {
-        socket.off('consultation_call_invite', handleCallInvite);
-        socket.off('consultation_call_end', handleCallEnd);
-      };
-    }
-
-    return undefined;
-  }, [user?.id, activeCall?.callId]);
 
   const fetchMemberDetails = async () => {
     try {
@@ -303,49 +264,7 @@ const PatientDashboard = () => {
 
   const lowStockItems = inventory.filter(item => item.stock <= item.minThreshold);
 
-  const acceptIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_accept', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      mode: incomingCall.mode,
-      acceptedBy: {
-        id: user.id,
-        name: user.name,
-      },
-    });
-    setActiveCall(incomingCall);
-    setIncomingCall(null);
-  };
 
-  const rejectIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_reject', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      rejectedBy: {
-        id: user.id,
-        name: user.name,
-      },
-    });
-    setIncomingCall(null);
-  };
-
-  const closeCall = (notifyPeer = true) => {
-    if (notifyPeer && activeCall) {
-      const socket = getSocket();
-      socket.emit('consultation_call_end', {
-        callId: activeCall.callId,
-        consultationId: activeCall.consultationId,
-        targetUserId: activeCall.peerUserId,
-      });
-    }
-    setActiveCall(null);
-  };
 
   return (
     <div className="patient-dashboard-shell relative flex h-screen overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
@@ -662,29 +581,6 @@ const PatientDashboard = () => {
           otherUserName={activeChat.name}
           consultationId={activeChat.consultationId}
           onClose={() => setActiveChat(null)}
-        />
-      )}
-      {incomingCall && (
-        <div className="fixed top-6 right-6 z-[65] bg-white border border-slate-200 shadow-2xl rounded-[2rem] p-6 w-full max-w-sm">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Incoming {incomingCall.mode === 'video' ? 'video' : 'voice'} consultation call
-          </p>
-          <h3 className="mt-2 text-2xl font-black text-slate-900">{incomingCall.peerUserName}</h3>
-          <div className="mt-5 flex gap-3">
-            <button onClick={acceptIncomingCall} className="flex-1 py-3 rounded-2xl bg-emerald-600 text-white font-bold">
-              Accept
-            </button>
-            <button onClick={rejectIncomingCall} className="flex-1 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold">
-              Reject
-            </button>
-          </div>
-        </div>
-      )}
-      {activeCall && (
-        <ConsultationCallModal
-          call={activeCall}
-          socket={getSocket()}
-          onClose={closeCall}
         />
       )}
     </div>

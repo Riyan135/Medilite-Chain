@@ -245,8 +245,6 @@ const DoctorDashboard = () => {
   const [activeChat, setActiveChat] = useState(null);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [savingConsultation, setSavingConsultation] = useState(false);
-  const [incomingCall, setIncomingCall] = useState(null);
-  const [activeCall, setActiveCall] = useState(null);
 
   const visiblePatients = searchResults.length ? searchResults : [];
 
@@ -261,57 +259,25 @@ const DoctorDashboard = () => {
     if (user?.id) {
       socket = getSocket();
       socket.emit('join_room', { room: user.id });
-      socket.on('incoming_appointment', (appointment) => {
-        toast.success(`New appointment request from ${appointment.patient?.user?.name || 'a patient'}`, {
-          icon: '📅',
-          style: { borderRadius: '16px', background: '#333', color: '#fff' }
-        });
+      socket.on('incoming_appointment', () => {
         fetchPendingAppointments();
       });
       socket.on('consultation_created', (consultation) => {
         setConsultations((current) => [consultation, ...current]);
-        toast.success(`New consultation created for ${consultation.patient?.name || 'a patient'}`);
-      });
-      socket.on('consultation_call_invite', (data) => {
-        setIncomingCall({
-          callId: data.callId,
-          consultationId: data.consultationId,
-          mode: data.mode,
-          peerUserId: data.caller.id,
-          peerUserName: data.caller.name,
-          isInitiator: false,
-        });
-      });
-      socket.on('consultation_call_accept', (data) => {
-        setActiveCall((current) =>
-          current || {
-            callId: data.callId,
-            consultationId: data.consultationId,
-            mode: data.mode,
-            peerUserId: data.acceptedBy.id,
-            peerUserName: data.acceptedBy.name,
-            isInitiator: true,
-          }
-        );
-      });
-      socket.on('consultation_call_end', (data) => {
-        if (activeCall?.callId === data.callId) {
-          setActiveCall(null);
-          toast('Call ended', { icon: '📞' });
-        }
       });
 
       fetchDashboardData();
     }
 
+    const handleAppointmentUpdate = () => fetchPendingAppointments();
+    window.addEventListener('appointment_updated', handleAppointmentUpdate);
+
     return () => {
       socket?.off('incoming_appointment');
       socket?.off('consultation_created');
-      socket?.off('consultation_call_invite');
-      socket?.off('consultation_call_accept');
-      socket?.off('consultation_call_end');
+      window.removeEventListener('appointment_updated', handleAppointmentUpdate);
     };
-  }, [user?.id, activeCall?.callId]);
+  }, [user?.id]);
 
   const fetchDashboardData = async () => {
     try {
@@ -410,52 +376,9 @@ const DoctorDashboard = () => {
     });
   };
 
-  const acceptIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_accept', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      mode: incomingCall.mode,
-      acceptedBy: {
-        id: user.id,
-        name: `Dr. ${user.name}`,
-      },
-    });
-    setActiveCall(incomingCall);
-    setIncomingCall(null);
-  };
-
-  const rejectIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_reject', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      rejectedBy: {
-        id: user.id,
-        name: `Dr. ${user.name}`,
-      },
-    });
-    setIncomingCall(null);
-  };
-
-  const closeCall = (notifyPeer = true) => {
-    if (notifyPeer && activeCall) {
-      const socket = getSocket();
-      socket.emit('consultation_call_end', {
-        callId: activeCall.callId,
-        consultationId: activeCall.consultationId,
-        targetUserId: activeCall.peerUserId,
-      });
-    }
-    setActiveCall(null);
-  };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-white transition-colors duration-300 relative overflow-hidden">
+    <div className="flex h-screen bg-transparent dark:bg-slate-950 font-sans text-slate-900 dark:text-white transition-colors duration-300 relative overflow-hidden">
       {/* Background Ambience */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[40%] bg-indigo-400/20 dark:bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
@@ -701,36 +624,7 @@ const DoctorDashboard = () => {
         />
       )}
 
-      {incomingCall && (
-        <div className="fixed top-6 right-6 z-[65] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/80 shadow-2xl rounded-[2rem] p-6 w-full max-w-sm animate-fade-in-up">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center animate-pulse">
-              <PhoneCall className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-              Incoming {incomingCall.mode} Call
-            </p>
-          </div>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-3 truncate">{incomingCall.peerUserName}</h3>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">Patient is waiting to connect.</p>
-          <div className="mt-6 flex gap-3">
-            <button onClick={acceptIncomingCall} className="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors shadow-md shadow-emerald-500/20">
-              Accept
-            </button>
-            <button onClick={rejectIncomingCall} className="flex-1 py-3 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold transition-colors">
-              Decline
-            </button>
-          </div>
-        </div>
-      )}
 
-      {activeCall && (
-        <ConsultationCallModal
-          call={activeCall}
-          socket={getSocket()}
-          onClose={closeCall}
-        />
-      )}
 
       {activeChat && (
         <Chat

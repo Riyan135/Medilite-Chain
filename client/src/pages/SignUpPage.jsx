@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity, ArrowLeft, Mail, Lock, Phone, User, Eye, EyeOff } from 'lucide-react';
+import { Activity, ArrowLeft, Mail, Lock, Phone, User, Eye, EyeOff, Droplets } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 import toast from 'react-hot-toast';
 
 const SignUpPage = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', bloodGroup: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,6 +24,7 @@ const SignUpPage = () => {
         password: formData.password,
         name: formData.name,
         phone: formData.phone,
+        bloodGroup: formData.bloodGroup,
       });
 
       const { user, token } = response.data;
@@ -48,7 +49,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 lg:py-12 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
+    <div className="min-h-screen bg-transparent flex items-center justify-center p-6 lg:py-12 relative overflow-hidden selection:bg-blue-600/20 selection:text-blue-900">
       <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-400/30 to-indigo-400/30 rounded-full blur-[120px] translate-x-1/2 -translate-y-1/2 animate-float pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/20 to-blue-400/20 rounded-full blur-[120px] -translate-x-1/2 translate-y-1/2 animate-float pointer-events-none" style={{ animationDelay: '2s' }}></div>
@@ -119,6 +120,32 @@ const SignUpPage = () => {
                   className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium text-slate-900"
                   placeholder="Enter your phone number"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 tracking-wider uppercase">Blood Group</label>
+              <div className="relative group">
+                <Droplets className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none" />
+                <select
+                  required
+                  value={formData.bloodGroup}
+                  onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
+                  className={`w-full pl-12 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all outline-none font-medium appearance-none ${formData.bloodGroup ? 'text-slate-900' : 'text-slate-400'}`}
+                >
+                  <option value="" disabled>Select blood group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
               </div>
             </div>
 

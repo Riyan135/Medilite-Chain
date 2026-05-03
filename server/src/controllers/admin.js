@@ -121,3 +121,47 @@ export const approveDoctor = async (req, res) => {
     res.status(500).json({ error: 'Failed to approve doctor' });
   }
 };
+
+export const toggleBlockUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.isBlocked = !user.isBlocked;
+    await user.save();
+
+    res.status(200).json({
+      message: `User ${user.isBlocked ? 'blocked' : 'unblocked'} successfully`,
+      isBlocked: user.isBlocked,
+    });
+  } catch (error) {
+    console.error('Error toggling block status:', error);
+    res.status(500).json({ error: 'Failed to update user block status' });
+  }
+};
+
+export const toggleFlagUser = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.isFlagged = !user.isFlagged;
+    await user.save();
+
+    res.status(200).json({
+      message: `User ${user.isFlagged ? 'flagged' : 'unflagged'} successfully`,
+      isFlagged: user.isFlagged,
+    });
+  } catch (error) {
+    console.error('Error toggling flag status:', error);
+    res.status(500).json({ error: 'Failed to update user flag status' });
+  }
+};

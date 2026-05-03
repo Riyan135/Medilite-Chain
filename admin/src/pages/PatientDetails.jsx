@@ -80,9 +80,13 @@ const PatientDetails = () => {
   useEffect(() => {
     let socket;
 
-    if (doctorUser?.id) {
+    const doctorId = doctorUser?.id || doctorUser?._id;
+    if (doctorId) {
       socket = getSocket();
-      socket.emit('join_room', { room: doctorUser.id });
+      
+      const joinRoom = () => socket.emit('join_room', { room: doctorId });
+      socket.on('connect', joinRoom);
+      if (socket.connected) joinRoom();
 
       const handleCallInvite = (data) => {
         setIncomingCall({
@@ -108,6 +112,7 @@ const PatientDetails = () => {
       return () => {
         socket.off('consultation_call_invite', handleCallInvite);
         socket.off('consultation_call_end', handleCallEnd);
+        socket.off('connect', joinRoom);
       };
     }
 
@@ -149,12 +154,7 @@ const PatientDetails = () => {
 
   const startCall = (mode) => {
     const latestNote = patient?.patientProfile?.notes?.[0];
-    const consultationId = latestNote?.id;
-
-    if (!consultationId) {
-      toast.error('Create a consultation note first to start a call');
-      return;
-    }
+    const consultationId = latestNote?.id || `consult_${Date.now()}`;
 
     const socket = getSocket();
     const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -165,19 +165,22 @@ const PatientDetails = () => {
       mode,
       peerUserId: patient.id,
       peerUserName: patient.name,
-      isInitiator: true,
+      isInitiator: false,
     });
 
-    socket.emit('consultation_call_invite', {
+    const inviteData = {
       callId,
       consultationId,
       targetUserId: patient.id,
       mode,
       caller: {
-        id: doctorUser.id,
+        id: doctorUser?.id || doctorUser?._id,
         name: `Dr. ${doctorUser.name}`,
       },
-    });
+    };
+    
+    console.log('[Socket] EMITTING CALL INVITE:', inviteData);
+    socket.emit('consultation_call_invite', inviteData);
   };
 
   const acceptIncomingCall = () => {
@@ -244,7 +247,7 @@ const PatientDetails = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-transparent">
       <Sidebar role="admin" />
       <main className="flex-1 overflow-y-auto p-8">
         <button 

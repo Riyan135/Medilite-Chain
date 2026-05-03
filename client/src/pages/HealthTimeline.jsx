@@ -31,7 +31,7 @@ const HealthTimeline = () => {
   }, [user]);
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-transparent">
       <Sidebar role="patient" />
       <main className="flex-1 overflow-y-auto">
         {loading ? (

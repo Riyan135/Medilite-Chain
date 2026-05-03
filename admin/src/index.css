@@ -31,7 +31,9 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply text-foreground font-sans;
+    background: radial-gradient(ellipse at top right, #eef2ff 0%, #ffffff 50%, #ecfeff 100%);
+    background-attachment: fixed;
   }
 }
 

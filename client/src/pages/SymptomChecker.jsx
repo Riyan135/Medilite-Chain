@@ -90,7 +90,7 @@ const SymptomChecker = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 relative overflow-hidden symptom-page-shell selection:bg-blue-600/20 selection:text-blue-900">
+    <div className="flex h-screen bg-transparent relative overflow-hidden symptom-page-shell selection:bg-blue-600/20 selection:text-blue-900">
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-[-12%] right-[-6%] w-[38rem] h-[38rem] rounded-full bg-gradient-to-bl from-blue-400/18 via-indigo-300/12 to-transparent blur-[120px] animate-float" />
         <div className="absolute bottom-[-18%] left-[-8%] w-[34rem] h-[34rem] rounded-full bg-gradient-to-tr from-cyan-300/16 via-sky-300/12 to-transparent blur-[120px] animate-[drift_18s_ease-in-out_infinite]" />

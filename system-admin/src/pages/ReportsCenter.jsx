@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, FileBarChart2, PieChart, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import Sidebar from '../components/Sidebar';
 import AdminTopbar from '../components/AdminTopbar';
@@ -31,9 +32,9 @@ const ReportsCenter = () => {
   const maxCount = Math.max(...roleBreakdown.map((item) => item.count), 1);
 
   return (
-    <div className="flex min-h-screen bg-[#f0f4f8]">
+    <div className="flex min-h-screen bg-transparent">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
+      <motion.main initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
         <AdminTopbar
           title="Reports Center"
           subtitle="View platform analytics, user distribution, operational load, and trend-ready summary blocks."
@@ -47,25 +48,25 @@ const ReportsCenter = () => {
         </section>
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-black text-slate-900">Role Distribution</h2>
-            <div className="mt-6 space-y-5">
-              {roleBreakdown.map((item) => (
-                <div key={item.role}>
+          <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow duration-300">
+            <h2 className="text-xl font-black text-slate-900">Role Distribution</h2>
+            <div className="mt-6 space-y-6">
+              {roleBreakdown.map((item, index) => (
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1, duration: 0.3 }} key={item.role}>
                   <div className="flex items-center justify-between text-sm font-semibold text-slate-600">
                     <span>{item.role}</span>
                     <span>{item.count}</span>
                   </div>
-                  <div className="mt-2 h-3 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: `${(item.count / maxCount) * 100}%` }} />
+                  <div className="mt-2 h-3 rounded-full bg-slate-100 overflow-hidden shadow-inner">
+                    <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-1000 ease-out" style={{ width: `${(item.count / maxCount) * 100}%` }} />
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
-            <h2 className="text-2xl font-black text-slate-900">Executive Summary</h2>
+          <section className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow duration-300">
+            <h2 className="text-xl font-black text-slate-900">Executive Summary</h2>
             <div className="mt-6 space-y-4">
               <Insight text={`${stats?.loggedInPatients || 0} patients have logged into the platform recently.`} />
               <Insight text={`${stats?.pendingAppointments || 0} appointments are waiting in the queue.`} />
@@ -74,21 +75,21 @@ const ReportsCenter = () => {
             </div>
           </section>
         </div>
-      </main>
+      </motion.main>
     </div>
   );
 };
 
 const ReportStat = ({ title, value, icon: Icon }) => (
-  <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
-    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+  <motion.div whileHover={{ y: -4 }} className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-shadow duration-300">
+    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 text-indigo-600 shadow-inner">
       <Icon className="h-6 w-6" />
     </div>
-    <p className="mt-5 text-sm font-semibold text-slate-500">{title}</p>
-    <p className="mt-2 text-4xl font-black text-slate-900">{value}</p>
-  </div>
+    <p className="mt-5 text-sm font-bold tracking-wide text-slate-400 uppercase">{title}</p>
+    <p className="mt-2 text-4xl font-black text-slate-900 tracking-tight">{value}</p>
+  </motion.div>
 );
 
-const Insight = ({ text }) => <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">{text}</div>;
+const Insight = ({ text }) => <div className="rounded-2xl bg-slate-50 hover:bg-indigo-50/50 transition-colors duration-300 px-5 py-4 text-sm font-medium text-slate-600 border border-slate-100 hover:border-indigo-100 shadow-sm">{text}</div>;
 
 export default ReportsCenter;

@@ -1,10 +1,50 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import 'dotenv/config';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const getGeminiApiKey = () => process.env.GEMINI_API_KEY?.trim();
+
+const getGenAI = () => {
+  const apiKey = getGeminiApiKey();
+
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is missing. Add a valid Google Gemini API key to server/.env and restart the backend.');
+  }
+
+  return new GoogleGenerativeAI(apiKey);
+};
+
+const parseGeminiError = (error) => {
+  const message = error.message || 'Gemini request failed';
+
+  if (message.includes('API_KEY_INVALID') || message.includes('API Key not found')) {
+    return 'GEMINI_API_KEY is invalid or not enabled for the Gemini API. Create a new key in Google AI Studio, update server/.env, and restart the backend.';
+  }
+
+  if (message.includes('quota') || message.includes('RESOURCE_EXHAUSTED')) {
+    return 'Gemini API quota is exhausted for this key. Check billing/quota or use another valid Gemini API key.';
+  }
+
+  return message;
+};
+
+const parseJsonResponse = (text) => {
+  const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+  return JSON.parse(cleanedText);
+};
+
+export const getAiStatus = () => {
+  const apiKey = getGeminiApiKey();
+
+  return {
+    configured: Boolean(apiKey),
+    keyLooksLikeGoogleKey: Boolean(apiKey && apiKey.startsWith('AIza') && apiKey.length >= 30),
+    model: 'gemini-2.5-flash',
+  };
+};
 
 export const summarizeReport = async (fileUrl, type, language = 'English') => {
   try {
+    const genAI = getGenAI();
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Fetch the file from the URL
@@ -44,19 +84,17 @@ export const summarizeReport = async (fileUrl, type, language = 'English') => {
     const result = await model.generateContent([prompt, filePart]);
     const response = await result.response;
     const text = response.text();
-    
-    // Clean up potential markdown formatting in the JSON response
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    return JSON.parse(cleanedText);
+
+    return parseJsonResponse(text);
   } catch (error) {
     console.error('Error in summarizeReport detailed:', error);
-    throw new Error(`Failed to generate AI summary: ${error.message} \n ${error.stack}`);
+    throw new Error(parseGeminiError(error));
   }
 };
 
 export const generateHealthOverview = async (records, language = 'English') => {
   try {
+    const genAI = getGenAI();
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const recordsText = records.map(r => `Type: ${r.type}, Title: ${r.title}, Summary: ${JSON.stringify(r.summary)}`).join('\n');
@@ -85,17 +123,17 @@ export const generateHealthOverview = async (records, language = 'English') => {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanedText);
+
+    return parseJsonResponse(text);
   } catch (error) {
     console.error('Error in generateHealthOverview:', error);
-    throw new Error('Failed to generate health overview');
+    throw new Error(parseGeminiError(error));
   }
 };
 
 export const analyzeSymptoms = async (symptoms, language = 'English') => {
   try {
+    const genAI = getGenAI();
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
@@ -120,12 +158,11 @@ export const analyzeSymptoms = async (symptoms, language = 'English') => {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleanedText);
+
+    return parseJsonResponse(text);
   } catch (error) {
     console.error('Error in analyzeSymptoms:', error);
-    throw new Error('Failed to analyze symptoms');
+    throw new Error(parseGeminiError(error));
   }
 };
 

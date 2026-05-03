@@ -26,11 +26,13 @@ import { authMiddleware } from './middleware/authMiddleware.js';
 import { connectMongo } from './lib/mongoose.js';
 import { ensureAdminUser } from './services/bootstrapUsers.js';
 import { startReminderScheduler } from './services/reminderScheduler.js';
+import { getCloudinaryStatus } from './utils/cloudinary.js';
+import { getAiStatus } from './services/aiService.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const LOG_LEVEL = process.env.LOG_LEVEL || 'minimal';
-const isVerboseLogging = LOG_LEVEL === 'debug' || LOG_LEVEL === 'verbose';
+const isVerboseLogging = true;
 const isVercel = process.env.VERCEL === '1';
 const httpServer = isVercel ? null : createServer(app);
 const ioStub = {
@@ -132,6 +134,16 @@ app.get('/health', (req, res) => {
     status: 'OK',
     message: 'MediLite API is running',
   });
+});
+
+app.get('/health/cloudinary', (req, res) => {
+  const status = getCloudinaryStatus();
+  res.status(status.configured ? 200 : 503).json(status);
+});
+
+app.get('/health/ai', (req, res) => {
+  const status = getAiStatus();
+  res.status(status.configured ? 200 : 503).json(status);
 });
 
 app.use(async (req, res, next) => {

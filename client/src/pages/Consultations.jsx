@@ -12,7 +12,6 @@ import toast from 'react-hot-toast';
 
 import Sidebar from '../components/Sidebar';
 import Chat from '../components/Chat';
-import ConsultationCallModal from '../components/ConsultationCallModal';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../lib/socket';
@@ -128,27 +127,7 @@ const CreateConsultationModal = ({ doctors, creating, onClose, onSubmit }) => {
   );
 };
 
-const IncomingCallDialog = ({ call, onAccept, onReject }) => {
-  if (!call) return null;
 
-  return (
-    <div className="fixed top-6 right-6 z-[65] bg-white border border-slate-200 shadow-2xl rounded-[2rem] p-6 w-full max-w-sm">
-      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
-        Incoming {call.mode === 'video' ? 'video' : 'voice'} consultation call
-      </p>
-      <h3 className="mt-2 text-2xl font-black text-slate-900">{call.peerUserName}</h3>
-      <p className="mt-2 text-sm text-slate-500">Consultation #{call.consultationId.slice(-6)}</p>
-      <div className="mt-5 flex gap-3">
-        <button onClick={onAccept} className="flex-1 py-3 rounded-2xl bg-emerald-600 text-white font-bold">
-          Accept
-        </button>
-        <button onClick={onReject} className="flex-1 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold">
-          Reject
-        </button>
-      </div>
-    </div>
-  );
-};
 
 const Consultations = () => {
   const { user } = useAuth();
@@ -158,8 +137,6 @@ const Consultations = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activeChat, setActiveChat] = useState(null);
-  const [incomingCall, setIncomingCall] = useState(null);
-  const [activeCall, setActiveCall] = useState(null);
 
   const activeConsultations = useMemo(
     () => consultations.filter((consultation) => consultation.status !== 'COMPLETED'),
@@ -183,61 +160,18 @@ const Consultations = () => {
         refreshStats();
       };
 
-      const handleCallInvite = (data) => {
-        setIncomingCall({
-          callId: data.callId,
-          consultationId: data.consultationId,
-          mode: data.mode,
-          peerUserId: data.caller.id,
-          peerUserName: data.caller.name,
-          isInitiator: false,
-        });
-      };
-
-      const handleCallAccept = (data) => {
-        setActiveCall((current) =>
-          current || {
-            callId: data.callId,
-            consultationId: data.consultationId,
-            mode: data.mode,
-            peerUserId: data.acceptedBy.id,
-            peerUserName: data.acceptedBy.name,
-            isInitiator: true,
-          }
-        );
-      };
-
-      const handleCallReject = (data) => {
-        toast.error(`${data.rejectedBy.name} rejected the call`);
-      };
-
-      const handleCallEnd = (data) => {
-        if (activeCall?.callId === data.callId) {
-          setActiveCall(null);
-          toast('Call ended');
-        }
-      };
-
       socket.on('consultation_created', handleConsultationCreated);
-      socket.on('consultation_call_invite', handleCallInvite);
-      socket.on('consultation_call_accept', handleCallAccept);
-      socket.on('consultation_call_reject', handleCallReject);
-      socket.on('consultation_call_end', handleCallEnd);
 
       fetchData();
       fetchDoctors();
 
       return () => {
         socket.off('consultation_created', handleConsultationCreated);
-        socket.off('consultation_call_invite', handleCallInvite);
-        socket.off('consultation_call_accept', handleCallAccept);
-        socket.off('consultation_call_reject', handleCallReject);
-        socket.off('consultation_call_end', handleCallEnd);
       };
     }
 
     return undefined;
-  }, [user?.id, activeCall?.callId]);
+  }, [user?.id]);
 
   const fetchData = async () => {
     try {
@@ -292,54 +226,9 @@ const Consultations = () => {
     }
   };
 
-  const acceptIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_accept', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      mode: incomingCall.mode,
-      acceptedBy: {
-        id: user.id,
-        name: user.name,
-      },
-    });
-
-    setActiveCall(incomingCall);
-    setIncomingCall(null);
-  };
-
-  const rejectIncomingCall = () => {
-    if (!incomingCall) return;
-    const socket = getSocket();
-    socket.emit('consultation_call_reject', {
-      callId: incomingCall.callId,
-      consultationId: incomingCall.consultationId,
-      targetUserId: incomingCall.peerUserId,
-      rejectedBy: {
-        id: user.id,
-        name: user.name,
-      },
-    });
-    setIncomingCall(null);
-  };
-
-  const closeCall = (notifyPeer = true) => {
-    const currentCall = activeCall;
-    if (notifyPeer && currentCall) {
-      const socket = getSocket();
-      socket.emit('consultation_call_end', {
-        callId: currentCall.callId,
-        consultationId: currentCall.consultationId,
-        targetUserId: currentCall.peerUserId,
-      });
-    }
-    setActiveCall(null);
-  };
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen bg-transparent">
       <Sidebar />
       <main className="flex-1 overflow-y-auto p-8">
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
@@ -506,19 +395,7 @@ const Consultations = () => {
         />
       )}
 
-      <IncomingCallDialog
-        call={incomingCall}
-        onAccept={acceptIncomingCall}
-        onReject={rejectIncomingCall}
-      />
 
-      {activeCall && (
-        <ConsultationCallModal
-          call={activeCall}
-          socket={getSocket()}
-          onClose={closeCall}
-        />
-      )}
 
       {activeChat && (
         <Chat
