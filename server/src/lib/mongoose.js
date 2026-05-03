@@ -1,7 +1,7 @@
 import dns from 'node:dns';
 import mongoose from 'mongoose';
 
-let isConnected = false;
+
 
 const LOOPBACK_DNS_SERVERS = new Set(['127.0.0.1', '::1']);
 
@@ -30,7 +30,7 @@ const configureDnsResolvers = () => {
 };
 
 export const connectMongo = async () => {
-  if (isConnected) {
+  if (mongoose.connection.readyState >= 1) {
     return mongoose.connection;
   }
 
@@ -47,9 +47,10 @@ export const connectMongo = async () => {
       ? undefined
       : 'medilite-chain',
     family: 4,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
   });
 
-  isConnected = true;
   return mongoose.connection;
 };
 
