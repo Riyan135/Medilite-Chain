@@ -13,35 +13,35 @@ import { useNavigate } from 'react-router-dom';
 const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
   const themes = {
     blue: {
-      bg: "bg-blue-50/50",
-      text: "text-blue-600",
-      border: "border-blue-100",
-      gradient: "from-blue-400/20 to-blue-600/20"
+      bg: "bg-blue-50/50 dark:bg-blue-500/10",
+      text: "text-blue-600 dark:text-blue-400",
+      border: "border-blue-100 dark:border-blue-500/20",
+      gradient: "from-blue-400/20 to-blue-600/20 dark:from-blue-500/10 dark:to-blue-600/10"
     },
     emerald: {
-      bg: "bg-emerald-50/50",
-      text: "text-emerald-600",
-      border: "border-emerald-100",
-      gradient: "from-emerald-400/20 to-teal-400/20"
+      bg: "bg-emerald-50/50 dark:bg-emerald-500/10",
+      text: "text-emerald-600 dark:text-emerald-400",
+      border: "border-emerald-100 dark:border-emerald-500/20",
+      gradient: "from-emerald-400/20 to-teal-400/20 dark:from-emerald-500/10 dark:to-teal-500/10"
     },
     cyan: {
-      bg: "bg-cyan-50/50",
-      text: "text-cyan-600",
-      border: "border-cyan-100",
-      gradient: "from-cyan-400/20 to-blue-400/20"
+      bg: "bg-cyan-50/50 dark:bg-cyan-500/10",
+      text: "text-cyan-600 dark:text-cyan-400",
+      border: "border-cyan-100 dark:border-cyan-500/20",
+      gradient: "from-cyan-400/20 to-blue-400/20 dark:from-cyan-500/10 dark:to-blue-500/10"
     },
     indigo: {
-      bg: "bg-indigo-50/50",
-      text: "text-indigo-600",
-      border: "border-indigo-100",
-      gradient: "from-indigo-400/20 to-purple-400/20"
+      bg: "bg-indigo-50/50 dark:bg-indigo-500/10",
+      text: "text-indigo-600 dark:text-indigo-400",
+      border: "border-indigo-100 dark:border-indigo-500/20",
+      gradient: "from-indigo-400/20 to-purple-400/20 dark:from-indigo-500/10 dark:to-purple-500/10"
     }
   };
   
   const t = themes[theme] || themes.blue;
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem] p-6 bg-white/70 backdrop-blur-xl border border-white shadow-xl shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-white/80 group">
+    <div className="relative overflow-hidden rounded-[2rem] p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-white/80 dark:hover:border-slate-700 group">
       <div className={`absolute -top-8 -right-8 w-40 h-40 bg-gradient-to-br ${t.gradient} rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700`}></div>
       <div className={`absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-tr ${t.gradient} rounded-full blur-2xl opacity-50`}></div>
       
@@ -52,8 +52,8 @@ const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
       </div>
       
       <div className="relative z-10">
-        <h3 className="text-slate-500 font-semibold text-sm tracking-wide mb-1.5">{title}</h3>
-        <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-4 drop-shadow-sm">{value}</h2>
+        <h3 className="text-slate-500 dark:text-slate-400 font-semibold text-sm tracking-wide mb-1.5">{title}</h3>
+        <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4 drop-shadow-sm">{value}</h2>
         <div className={`inline-flex items-center ${t.bg} border ${t.border} px-3 py-1.5 rounded-xl text-xs font-bold ${t.text} shadow-sm`}>
           {subtitle}
         </div>
@@ -92,10 +92,10 @@ const AdminDashboard = () => {
   const showAppointmentToast = (appointment) => {
     toast((t) => (
       <div className="flex flex-col gap-3 min-w-[250px]">
-        <p className="font-bold text-slate-800 text-base">New Appointment Request</p>
-        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-          <p className="text-sm text-slate-700 font-medium">Patient: {appointment.patient?.user?.name || "Unknown Patient"}</p>
-          <p className="text-xs text-slate-500 mt-1">{appointment.date} @ {appointment.time}</p>
+        <p className="font-bold text-slate-800 dark:text-white text-base">New Appointment Request</p>
+        <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-100 dark:border-slate-700">
+          <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">Patient: {appointment.patient?.user?.name || "Unknown Patient"}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{appointment.date} @ {appointment.time}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -106,7 +106,7 @@ const AdminDashboard = () => {
             }}
           >Accept</button>
           <button
-            className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+            className="flex-1 bg-white dark:bg-slate-800 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
             onClick={() => {
               handleAppointmentStatus(appointment, 'REJECTED');
               toast.dismiss(t.id);
@@ -253,7 +253,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f0f4f8]">
+    <div className="flex min-h-screen bg-[#f0f4f8] dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300">
       <Sidebar role="admin" />
       <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
         <AdminTopbar
@@ -317,9 +317,9 @@ const AdminDashboard = () => {
         </section>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr] gap-8">
-          <section className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-800">
+          <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+            <div className="p-6 border-b border-slate-50 dark:border-slate-800/50 flex justify-between items-center bg-white/40 dark:bg-slate-900/40">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white">
                 Patient Overview
               </h3>
               <p className="text-sm text-slate-400 font-medium">
@@ -329,30 +329,30 @@ const AdminDashboard = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/50">
+                  <tr className="bg-slate-50/50 dark:bg-slate-800/50">
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Patient</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Medical Records</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Consulting Doctor</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {patients.map(patient => (
-                    <tr key={patient.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={patient.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-3 font-bold text-blue-600 text-sm border border-blue-100">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center mr-3 font-bold text-blue-600 dark:text-blue-400 text-sm border border-blue-100 dark:border-blue-500/20">
                             {patient.name[0].toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm">{patient.name}</p>
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">{patient.name}</p>
                             <p className="text-[10px] text-slate-400 font-bold uppercase">{patient.email}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold">
+                          <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-[10px] font-bold border border-slate-200 dark:border-slate-700">
                             {patient.patientProfile?.records?.length || 0} Records
                           </span>
                         </div>
@@ -360,15 +360,15 @@ const AdminDashboard = () => {
                       <td className="px-6 py-4">
                         {patient.patientProfile?.consultingDoctor ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-[10px] text-emerald-600 font-bold">
+                            <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
                               DR
                             </div>
-                            <span className="text-sm font-medium text-slate-700">Dr. {patient.patientProfile.consultingDoctor.name}</span>
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Dr. {patient.patientProfile.consultingDoctor.name}</span>
                           </div>
                         ) : (
                           <button 
                             onClick={() => setShowAssignModal(patient)}
-                            className="text-xs font-bold text-primary hover:underline"
+                            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
                           >
                             Assign Doctor
                           </button>
@@ -378,13 +378,13 @@ const AdminDashboard = () => {
                         <div className="flex justify-end gap-2">
                           <button 
                             onClick={() => setActiveChat({ id: patient.id, name: patient.name })}
-                            className="p-2 text-primary hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
                             title="Chat with Patient"
                           >
                             <MessageSquare className="w-5 h-5" />
                           </button>
                           <button 
-                            className="p-2 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+                            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg transition-colors"
                             onClick={() => navigate(`/patient/${patient.id}`)}
                             title="View Records"
                           >
@@ -400,22 +400,22 @@ const AdminDashboard = () => {
           </section>
 
           <aside className="space-y-8">
-            <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-black text-slate-900">Patients Per Day</h3>
-              <p className="mt-1 text-sm text-slate-500">Recent login activity across patient accounts.</p>
+            <section className="rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm transition-colors">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">Patients Per Day</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Recent login activity across patient accounts.</p>
               <div className="mt-6 space-y-4">
                 {patientTrendData.length === 0 ? (
-                  <p className="text-sm text-slate-400">Patient activity will appear here once patients log in.</p>
+                  <p className="text-sm text-slate-400 dark:text-slate-500">Patient activity will appear here once patients log in.</p>
                 ) : (
                   patientTrendData.map((item) => (
                     <div key={item.label}>
-                      <div className="flex items-center justify-between text-sm font-semibold text-slate-600">
+                      <div className="flex items-center justify-between text-sm font-semibold text-slate-600 dark:text-slate-300">
                         <span>{item.label}</span>
                         <span>{item.count}</span>
                       </div>
-                      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100">
+                      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-[#1d4ed8] via-sky-500 to-[#facc15]"
+                          className="h-full rounded-full bg-gradient-to-r from-blue-600 via-sky-500 to-amber-400"
                           style={{ width: `${(item.count / maxTrend) * 100}%` }}
                         />
                       </div>
@@ -425,8 +425,8 @@ const AdminDashboard = () => {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-              <h3 className="text-xl font-black text-slate-900">Quick System Flags</h3>
+            <section className="rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm transition-colors">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">Quick System Flags</h3>
               <div className="mt-6 space-y-4">
                 <FlagRow label="Pending Appointments" value={stats?.pendingAppointments || 0} tone="yellow" />
                 <FlagRow label="Ongoing Consultations" value={stats?.ongoingConsultations || 0} tone="blue" />
@@ -439,30 +439,30 @@ const AdminDashboard = () => {
       </main>
 
       {showAssignModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 animate-in fade-in zoom-in duration-300">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">Assign Consulting Doctor</h2>
-            <p className="text-sm text-slate-500 mb-4 font-medium italic underline underline-offset-4 decoration-primary/20">Assigning for: {showAssignModal.name}</p>
+        <div className="fixed inset-0 bg-slate-900/50 dark:bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl p-8 animate-in fade-in zoom-in duration-300 border border-slate-200 dark:border-slate-800">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Assign Consulting Doctor</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium italic underline underline-offset-4 decoration-blue-500/20">Assigning for: {showAssignModal.name}</p>
             <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
               {doctors.map(doc => (
                 <button 
                   key={doc.id}
                   onClick={() => handleAssignDoctor(showAssignModal.id, doc.id)}
-                  className="w-full flex items-center p-4 bg-slate-50 hover:bg-primary/5 border border-slate-100 hover:border-primary/20 rounded-xl transition-all text-left"
+                  className="w-full flex items-center p-4 bg-slate-50 dark:bg-slate-950 hover:bg-blue-50 dark:hover:bg-blue-500/10 border border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-blue-500/20 rounded-xl transition-all text-left"
                 >
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold mr-4">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold mr-4">
                     DR
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-900 text-sm">Dr. {doc.name}</h4>
-                    <p className="text-xs text-slate-400">{doc.email || doc.phone || 'Available doctor'}</p>
+                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">Dr. {doc.name}</h4>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{doc.email || doc.phone || 'Available doctor'}</p>
                   </div>
                 </button>
               ))}
             </div>
             <button 
               onClick={() => setShowAssignModal(null)}
-              className="w-full mt-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold"
+              className="w-full mt-6 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors"
             >
               Cancel
             </button>
@@ -478,16 +478,16 @@ const AdminDashboard = () => {
         />
       )}
       {incomingCall && (
-        <div className="fixed top-6 right-6 z-[65] bg-white border border-slate-200 shadow-2xl rounded-[2rem] p-6 w-full max-w-sm">
+        <div className="fixed top-6 right-6 z-[65] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-[2rem] p-6 w-full max-w-sm">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Incoming {incomingCall.mode === 'video' ? 'video' : 'voice'} consultation call
           </p>
-          <h3 className="mt-2 text-2xl font-black text-slate-900">{incomingCall.peerUserName}</h3>
+          <h3 className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{incomingCall.peerUserName}</h3>
           <div className="mt-5 flex gap-3">
             <button onClick={acceptIncomingCall} className="flex-1 py-3 rounded-2xl bg-emerald-600 text-white font-bold">
               Accept
             </button>
-            <button onClick={rejectIncomingCall} className="flex-1 py-3 rounded-2xl bg-rose-50 text-rose-600 font-bold">
+            <button onClick={rejectIncomingCall} className="flex-1 py-3 rounded-2xl bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold border border-rose-100 dark:border-rose-500/20">
               Reject
             </button>
           </div>
@@ -506,14 +506,14 @@ const AdminDashboard = () => {
 
 const FlagRow = ({ label, value, tone }) => {
   const styles = {
-    blue: 'bg-blue-50 text-[#1d4ed8]',
-    yellow: 'bg-yellow-50 text-[#b45309]',
-    red: 'bg-red-50 text-[#dc2626]',
+    blue: 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20',
+    yellow: 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20',
+    red: 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-100 dark:border-rose-500/20',
   };
 
   return (
-    <div className="flex items-center justify-between rounded-2xl bg-[#f0f4f8] px-4 py-3">
-      <span className="font-semibold text-slate-600">{label}</span>
+    <div className="flex items-center justify-between rounded-2xl bg-slate-50 dark:bg-slate-800/50 px-4 py-3">
+      <span className="font-semibold text-slate-600 dark:text-slate-300">{label}</span>
       <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${styles[tone]}`}>{value}</span>
     </div>
   );

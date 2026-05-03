@@ -134,6 +134,18 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.use(async (req, res, next) => {
+  if (isVercel) {
+    try {
+      await connectMongo();
+    } catch (error) {
+      console.error('Vercel DB Connection Error:', error);
+      return res.status(500).json({ error: 'Database connection failed on serverless' });
+    }
+  }
+  next();
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/symptoms', symptomRoutes);
 

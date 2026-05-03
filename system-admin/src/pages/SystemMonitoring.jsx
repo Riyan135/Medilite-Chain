@@ -138,9 +138,10 @@ const SystemMonitoring = () => {
     try {
       if (isManual) setRefreshing(true);
 
+      const serverBase = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000';
       const [statsRes, healthRes] = await Promise.all([
         api.get('/admin/stats'),
-        fetch('http://localhost:5000/health').catch(() => null),
+        fetch(`${serverBase}/health`).catch(() => null),
       ]);
 
       setStats(statsRes.data);
