@@ -37,6 +37,7 @@ const SignInPage = () => {
         id: user.id,
         email: user.email,
         name: user.name,
+        phone: user.phone,
         role: user.role,
         token,
       });
