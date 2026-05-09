@@ -252,22 +252,7 @@ const Records = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex gap-4">
-              <div className="relative group min-w-[220px]">
-                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                <select
-                  className="w-full pl-12 pr-8 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none appearance-none font-bold text-slate-700 transition-all cursor-pointer"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <option value="ALL">All Document Types</option>
-                  <option value="REPORT">Medical Reports</option>
-                  <option value="BILL">Hospital Bills</option>
-                  <option value="PRESCRIPTION">Prescriptions</option>
-                  <option value="LAB_TEST">Lab Tests</option>
-                </select>
-              </div>
-            </div>
+            
           </div>
 
           <div className="bg-white/75 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-xl shadow-slate-200/50 animate-slide-up-fade records-panel-lift" style={{ animationDelay: '0.08s' }}>
