@@ -37,6 +37,7 @@ const Records = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadType, setUploadType] = useState('REPORT');
   const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [showStickyLangMenu, setShowStickyLangMenu] = useState(false);
 
 
   useEffect(() => {
@@ -415,27 +416,63 @@ const Records = () => {
       </main>
 
       {/* Language Selector Sticky */}
-      <div className="fixed bottom-8 right-8 z-40 bg-white/80 backdrop-blur-xl p-4 rounded-3xl shadow-2xl shadow-blue-900/10 border border-white/60 flex items-center gap-4 hover:shadow-blue-900/20 transition-all hover:-translate-y-1 group">
-        <div className="p-2 bg-blue-50 rounded-xl">
-          <Globe className="w-5 h-5 text-blue-600 group-hover:animate-spin-once" />
-        </div>
-        <select
-          className="bg-transparent font-bold text-slate-700 outline-none cursor-pointer appearance-none pr-6"
-          value={selectedLanguage}
-          onChange={(e) => setSelectedLanguage(e.target.value)}
+      <div className="fixed bottom-8 right-8 z-40">
+        <div 
+          className="bg-white/90 backdrop-blur-xl p-4 rounded-3xl shadow-2xl shadow-blue-900/10 border border-white/60 flex items-center gap-4 hover:shadow-blue-900/20 transition-all hover:-translate-y-1 group cursor-pointer"
+          onClick={() => setShowStickyLangMenu(!showStickyLangMenu)}
         >
-          <option value="English">English</option>
-          <option value="Hindi">हिन्दी (Hindi)</option>
-          <option value="Kannada">ಕನ್ನಡ (Kannada)</option>
-          <option value="Marathi">मराठी (Marathi)</option>
-          <option value="Tamil">தமிழ் (Tamil)</option>
-          <option value="Telugu">తెలుగు (Telugu)</option>
-          <option value="Urdu">اردو (Urdu)</option>
-          <option value="Malyalam">മലയാളം (Malyalam)</option>
-          <option value="Punjabi">ਪੰਜਾਬੀ (Punjabi)</option>
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-6 flex items-center text-slate-400">
-          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+          <div className="p-2 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors">
+            <Globe className="w-5 h-5 text-blue-600 group-hover:animate-spin-once" />
+          </div>
+          <div className="font-bold text-slate-700 pr-2">
+            {selectedLanguage === 'Hindi' ? 'हिन्दी (Hindi)' : 
+             selectedLanguage === 'Kannada' ? 'ಕನ್ನಡ (Kannada)' :
+             selectedLanguage === 'Marathi' ? 'मराठी (Marathi)' :
+             selectedLanguage === 'Tamil' ? 'தமிழ் (Tamil)' :
+             selectedLanguage === 'Telugu' ? 'తెలుగు (Telugu)' :
+             selectedLanguage === 'Urdu' ? 'اردو (Urdu)' :
+             selectedLanguage === 'Malayalam' || selectedLanguage === 'Malyalam' ? 'മലയാളം (Malayalam)' :
+             selectedLanguage === 'Punjabi' ? 'ਪੰਜਾਬੀ (Punjabi)' : 
+             selectedLanguage}
+          </div>
+          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${showStickyLangMenu ? 'rotate-180' : ''}`} />
+        </div>
+
+        {/* Animated Dropdown Menu */}
+        <div className={`absolute bottom-full right-0 mb-4 bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] border border-white/60 p-2 min-w-[220px] transform transition-all duration-300 origin-bottom-right ${showStickyLangMenu ? 'scale-100 opacity-100 translate-y-0 visible' : 'scale-95 opacity-0 translate-y-4 invisible'}`}>
+          <div className="max-h-[320px] overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-1">
+            {languageOptions.map((lang) => {
+              const displayLang = lang === 'Hindi' ? 'हिन्दी (Hindi)' : 
+                                 lang === 'Kannada' ? 'ಕನ್ನಡ (Kannada)' :
+                                 lang === 'Marathi' ? 'मराठी (Marathi)' :
+                                 lang === 'Tamil' ? 'தமிழ் (Tamil)' :
+                                 lang === 'Telugu' ? 'తెలుగు (Telugu)' :
+                                 lang === 'Urdu' ? 'اردو (Urdu)' :
+                                 lang === 'Malayalam' || lang === 'Malyalam' ? 'മലയാളം (Malayalam)' :
+                                 lang === 'Punjabi' ? 'ਪੰਜਾਬੀ (Punjabi)' : 
+                                 lang;
+              
+              return (
+                <button
+                  key={lang}
+                  onClick={() => {
+                    setSelectedLanguage(lang);
+                    setShowStickyLangMenu(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-200 font-bold text-sm ${
+                    selectedLanguage === lang 
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 translate-x-1' 
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-blue-600 hover:translate-x-1'
+                  }`}
+                >
+                  {displayLang}
+                  {selectedLanguage === lang && (
+                    <div className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
