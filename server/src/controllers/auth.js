@@ -15,6 +15,7 @@ const toAuthUser = (user) => ({
   role: user.role,
   doctorId: user.doctorId || null,
   specialization: user.specialization || null,
+  profileImageUrl: user.profileImageUrl || null,
 });
 
 const markPortalLogin = async (user) => {

@@ -6,6 +6,11 @@ const appointmentSchema = new mongoose.Schema(
     doctorId: { type: String, required: true, index: true },
     date: { type: String, required: true },
     time: { type: String, required: true },
+    appointmentType: {
+      type: String,
+      enum: ['CLINIC_VISIT', 'VIDEO_CALL', 'CHAT_CONSULTATION', 'EMERGENCY'],
+      default: 'CLINIC_VISIT',
+    },
     reason: { type: String, default: null },
     status: {
       type: String,

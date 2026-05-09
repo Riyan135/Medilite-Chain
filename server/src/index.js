@@ -32,7 +32,7 @@ import { getAiStatus } from './services/aiService.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 const LOG_LEVEL = process.env.LOG_LEVEL || 'minimal';
-const isVerboseLogging = true;
+const isVerboseLogging = LOG_LEVEL === 'debug' || LOG_LEVEL === 'verbose';
 const isVercel = process.env.VERCEL === '1';
 const httpServer = isVercel ? null : createServer(app);
 const ioStub = {

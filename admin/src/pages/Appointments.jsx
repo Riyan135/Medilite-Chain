@@ -60,6 +60,7 @@ const Appointments = () => {
         <AdminTopbar
           title={user?.role === 'DOCTOR' ? 'Doctor Appointments' : 'Appointments'}
           subtitle="Track appointment requests, accepted slots, urgent follow-ups, and appointment history."
+          showNotifications={false}
         />
 
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">

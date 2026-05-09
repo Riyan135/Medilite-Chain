@@ -9,12 +9,13 @@ import {
   Siren,
   UsersRound,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import Sidebar from '../components/Sidebar';
 import AdminTopbar from '../components/AdminTopbar';
 import api from '../api/api';
 
-const OverviewCard = ({ title, value, detail, icon: Icon, tone }) => {
+const OverviewCard = ({ title, value, detail, icon: Icon, tone, onClick }) => {
   const tones = {
     blue: 'from-blue-500/15 to-cyan-400/10 text-blue-700 border-blue-100',
     emerald: 'from-emerald-500/15 to-lime-400/10 text-emerald-700 border-emerald-100',
@@ -22,8 +23,14 @@ const OverviewCard = ({ title, value, detail, icon: Icon, tone }) => {
     indigo: 'from-indigo-500/15 to-violet-400/10 text-indigo-700 border-indigo-100',
   };
 
+  const CardElement = onClick ? 'button' : 'div';
+
   return (
-    <div className={`rounded-[2rem] border bg-gradient-to-br ${tones[tone]} bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}>
+    <CardElement
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={`rounded-[2rem] border bg-gradient-to-br ${tones[tone]} bg-white p-6 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${onClick ? 'w-full cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-500/15' : ''}`}
+    >
       <div className="flex items-center justify-between">
         <div className="rounded-2xl bg-white/80 p-3 shadow-sm">
           <Icon className="h-6 w-6" />
@@ -32,7 +39,7 @@ const OverviewCard = ({ title, value, detail, icon: Icon, tone }) => {
       <p className="mt-5 text-sm font-semibold text-slate-500">{title}</p>
       <p className="mt-2 text-4xl font-black text-slate-900">{value}</p>
       <p className="mt-3 text-sm font-medium text-slate-500">{detail}</p>
-    </div>
+    </CardElement>
   );
 };
 
@@ -49,6 +56,7 @@ const ServiceRow = ({ label, status, note }) => (
 );
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
 
@@ -91,10 +99,10 @@ const AdminDashboard = () => {
         />
 
         <section className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <OverviewCard title="Platform Users" value={stats?.totalUsers || 0} detail={`${patients.length} patients, ${doctors.length} doctors, ${admins.length} admins`} icon={UsersRound} tone="blue" />
-          <OverviewCard title="Security Readiness" value={`${Math.min(100, 78 + admins.length * 4)}%`} detail={`${unverifiedDoctors.length} doctor account(s) awaiting review`} icon={ShieldCheck} tone="indigo" />
-          <OverviewCard title="Active Services" value="7" detail="OTP, sockets, records, consultations, reminders, inventory, emergency" icon={ActivitySquare} tone="emerald" />
-          <OverviewCard title="Alert Queue" value={(stats?.lowStockMedicines || 0) + (stats?.expiredMedicines || 0)} detail={`${stats?.expiredMedicines || 0} expired medicines and ${stats?.lowStockMedicines || 0} stock alerts`} icon={BellRing} tone="amber" />
+          <OverviewCard title="Platform Users" value={stats?.totalUsers || 0} detail={`${patients.length} patients, ${doctors.length} doctors, ${admins.length} admins`} icon={UsersRound} tone="blue" onClick={() => navigate('/user-governance')} />
+          <OverviewCard title="Security Readiness" value={`${Math.min(100, 78 + admins.length * 4)}%`} detail={`${unverifiedDoctors.length} doctor account(s) awaiting review`} icon={ShieldCheck} tone="indigo" onClick={() => navigate('/user-governance')} />
+          <OverviewCard title="Active Services" value="7" detail="OTP, sockets, records, consultations, reminders, inventory, emergency" icon={ActivitySquare} tone="emerald" onClick={() => navigate('/system-monitoring')} />
+          <OverviewCard title="Alert Queue" value={(stats?.lowStockMedicines || 0) + (stats?.expiredMedicines || 0)} detail={`${stats?.expiredMedicines || 0} expired medicines and ${stats?.lowStockMedicines || 0} stock alerts`} icon={BellRing} tone="amber" onClick={() => navigate('/notifications')} />
         </section>
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.2fr_0.8fr]">

@@ -197,6 +197,23 @@ const Medicines = () => {
   };
 
   const chartData = useMemo(() => stats?.byCategory || [], [stats?.byCategory]);
+  const inventorySummary = useMemo(() => {
+    const total = stats?.totalMedicines || 0;
+    const expiredCount = stats?.expiredCount || 0;
+    const expiringCount = stats?.nearExpiryCount || 0;
+    const safeCount = Math.max(total - expiredCount - expiringCount, 0);
+    const percent = (value) => (total > 0 ? Math.round((value / total) * 100) : 0);
+
+    return {
+      total,
+      expiredCount,
+      expiringCount,
+      safeCount,
+      expiredPercent: percent(expiredCount),
+      expiringPercent: percent(expiringCount),
+      safePercent: percent(safeCount),
+    };
+  }, [stats?.expiredCount, stats?.nearExpiryCount, stats?.totalMedicines]);
   const stockGraphData = useMemo(
     () =>
       [...medicines]
@@ -219,18 +236,23 @@ const Medicines = () => {
     <div className="flex min-h-screen bg-transparent">
       <Sidebar />
       <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
-        <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-10">
+        <div className="mb-10">
           <AdminTopbar
             title="Medicine Stock"
             subtitle="Manage medicine inventory, stock alerts, expiry risk, and prescription-linked deductions."
+            notificationMode="inventory"
+            inventorySummary={inventorySummary}
+            showNotifications={false}
           />
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-4 text-white font-black shadow-lg"
-          >
-            <Plus className="w-5 h-5" />
-            Add Medicine
-          </button>
+          <div className="flex justify-end">
+            <button
+              onClick={openCreateModal}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-4 text-white font-black shadow-lg"
+            >
+              <Plus className="w-5 h-5" />
+              Add Medicine
+            </button>
+          </div>
         </div>
 
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">

@@ -38,28 +38,30 @@ const Card = ({ title, value, icon: Icon, color, onClick, interactive = false, p
 );
 
 const HealthScoreModal = ({ profile, stats, onClose }) => {
+  const breakdown = stats?.healthBreakdown || {};
   const graphItems = [
     {
       label: 'Profile Completion',
-      value: profile?.bloodGroup && profile?.emergencyContact ? 92 : profile?.bloodGroup || profile?.emergencyContact ? 68 : 36,
+      value: breakdown.profileCompletion ?? (profile?.bloodGroup && profile?.emergencyContact ? 92 : profile?.bloodGroup || profile?.emergencyContact ? 68 : 36),
       tone: 'from-blue-500 to-cyan-400',
     },
     {
       label: 'Reminder Support',
-      value: Math.min(100, (stats?.activeReminders || 0) * 20 + 20),
+      value: breakdown.reminderSupport ?? Math.min(100, (stats?.activeReminders || 0) * 20 + 20),
       tone: 'from-emerald-500 to-lime-400',
     },
     {
       label: 'Records Coverage',
-      value: Math.min(100, (stats?.totalRecords || 0) * 18 + 22),
+      value: breakdown.recordsCoverage ?? Math.min(100, (stats?.totalRecords || 0) * 18 + 22),
       tone: 'from-indigo-500 to-violet-400',
     },
     {
       label: 'Safety Readiness',
-      value: profile?.allergies || profile?.emergencyContact ? 82 : 48,
+      value: breakdown.safetyReadiness ?? (profile?.allergies || profile?.emergencyContact ? 82 : 48),
       tone: 'from-amber-500 to-orange-400',
     },
   ];
+  const calculatedScore = Math.round(graphItems.reduce((total, item) => total + item.value, 0) / graphItems.length);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-md">
@@ -69,7 +71,7 @@ const HealthScoreModal = ({ profile, stats, onClose }) => {
             <p className="text-xs font-black uppercase tracking-[0.35em] text-blue-600">Health Score Graph</p>
             <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900">Profile breakdown</h2>
             <p className="mt-2 text-sm font-medium text-slate-500">
-              This graph is based on your profile completion, reminders, records, and emergency readiness.
+              Your health score is the average of these four readiness areas: profile completion, reminder support, records coverage, and safety readiness.
             </p>
           </div>
           <button
@@ -101,10 +103,17 @@ const HealthScoreModal = ({ profile, stats, onClose }) => {
 
           <div className="rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6">
             <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-600">Current Score</p>
-            <p className="mt-3 text-6xl font-black tracking-tight text-slate-900">{stats?.healthScore || 'N/A'}</p>
+            <p className="mt-3 text-6xl font-black tracking-tight text-slate-900">{stats?.healthScore ?? calculatedScore}</p>
             <p className="mt-4 text-sm font-medium leading-relaxed text-slate-500">
-              Keeping your emergency contact updated, maintaining reminders, and uploading more reports will improve this overall picture.
+              The score improves when your blood group and emergency contact are filled, reminders are active, records are uploaded, and allergy or safety notes are updated.
             </p>
+
+            <div className="mt-5 rounded-2xl bg-white/80 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">How it is calculated</p>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-600">
+                Score = average of the four graph percentages. It is a profile readiness score, not a medical diagnosis.
+              </p>
+            </div>
 
             <div className="mt-6 space-y-3">
               <div className="rounded-2xl bg-white/80 p-4">
@@ -352,6 +361,8 @@ const PatientDashboard = () => {
             value={loading ? "..." : stats?.totalRecords || "0"}
             icon={FileText}
             color="bg-blue-600"
+            interactive
+            onClick={() => navigate('/records')}
             progress={loading ? 0 : Math.min((stats?.totalRecords || 0) * 10, 100)}
           />
           <Card
@@ -359,6 +370,8 @@ const PatientDashboard = () => {
             value={loading ? "..." : inventory.length || "0"}
             icon={Pill}
             color="bg-indigo-600"
+            interactive
+            onClick={() => navigate('/reminders')}
             progress={loading ? 0 : Math.min(inventory.length * 10, 100)}
           />
           <Card
@@ -366,6 +379,8 @@ const PatientDashboard = () => {
             value={loading ? "..." : stats?.activeReminders || "0"}
             icon={CalendarClock}
             color="bg-green-600"
+            interactive
+            onClick={() => navigate('/reminders')}
             progress={loading ? 0 : Math.min((stats?.activeReminders || 0) * 20, 100)}
           />
           <Card

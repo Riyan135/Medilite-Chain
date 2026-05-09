@@ -73,6 +73,18 @@ const storage =
       })
     : null;
 
+const profileImageStorage =
+  cloudinaryConfigErrors.length === 0
+    ? new CloudinaryStorage({
+        cloudinary,
+        params: {
+          folder: 'medilite_profile_pictures',
+          allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+          resource_type: 'image',
+        },
+      })
+    : null;
+
 export const getCloudinaryStatus = () => ({
   configured: cloudinaryConfigErrors.length === 0,
   errors: cloudinaryConfigErrors,
@@ -100,4 +112,5 @@ export const handleCloudinaryUploadError = (error, req, res, next) => {
 };
 
 export const upload = storage ? multer({ storage }) : unavailableUpload;
+export const uploadProfileImage = profileImageStorage ? multer({ storage: profileImageStorage }) : unavailableUpload;
 export default cloudinary;

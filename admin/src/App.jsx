@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import AutoLoginPage from './pages/SignInPage';
 import AdminDashboard from './pages/AdminDashboard';
 import Appointments from './pages/Appointments';
+import Consultations from './pages/Consultations';
 import Medicines from './pages/Medicines';
 import PatientDetails from './pages/PatientDetails';
 import Profile from './pages/Profile';
@@ -57,6 +58,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <Appointments />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/consultations" 
+            element={
+              <ProtectedRoute>
+                <Consultations />
               </ProtectedRoute>
             } 
           />

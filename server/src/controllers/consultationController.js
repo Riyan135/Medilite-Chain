@@ -10,6 +10,7 @@ const toUserSummary = (user) =>
         name: user.name,
         email: user.email,
         phone: user.phone,
+        specialization: user.specialization || null,
       }
     : null;
 
@@ -17,7 +18,7 @@ const hydrateConsultation = async (consultation) => {
   const value = consultation.toObject ? consultation.toObject() : { ...consultation };
   const [patient, doctor, appointment] = await Promise.all([
     User.findById(value.patientId).select('_id name email phone').lean(),
-    User.findById(value.doctorId).select('_id name email phone').lean(),
+    User.findById(value.doctorId).select('_id name email phone specialization').lean(),
     value.appointmentId ? Appointment.findById(value.appointmentId).lean() : null,
   ]);
 
@@ -31,6 +32,7 @@ const hydrateConsultation = async (consultation) => {
           id: appointment._id.toString(),
           date: appointment.date,
           time: appointment.time,
+          appointmentType: appointment.appointmentType || 'CLINIC_VISIT',
           status: appointment.status,
         }
       : null,
@@ -60,7 +62,11 @@ export const createConsultationFromAppointment = async (appointment) => {
     appointmentId: appointment._id.toString(),
     patientId: appointment.patientUserId,
     doctorId: appointment.doctorId,
-    consultationType: 'ONLINE_CHAT',
+    consultationType: appointment.appointmentType === 'VIDEO_CALL'
+      ? 'VIDEO_CALL'
+      : appointment.appointmentType === 'CHAT_CONSULTATION'
+        ? 'ONLINE_CHAT'
+        : 'IN_PERSON',
     status: 'PENDING',
     scheduledDate: appointment.date,
     scheduledTime: appointment.time,
@@ -121,6 +127,8 @@ export const getConsultations = async (req, res) => {
     if (req.user.role === 'DOCTOR') {
       query.doctorId = req.user.id;
     } else if (req.user.role === 'PATIENT') {
+      query.patientId = req.user.id;
+    } else if (req.user.role === 'ADMIN' && req.headers['x-app-type'] !== 'admin') {
       query.patientId = req.user.id;
     }
 

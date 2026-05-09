@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, BadgeCheck, KeyRound, Mail, MailCheck, ShieldCheck, Stethoscope, UserRound } from 'lucide-react';
+import { ArrowRight, BadgeCheck, KeyRound, Mail, ShieldCheck, Sparkles, Stethoscope, UserPlus, UserRound } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 import api from '../api/api';
@@ -139,19 +139,18 @@ const SignInPage = () => {
             </div>
             <div className="space-y-5">
               <h1 className="text-5xl xl:text-6xl font-black leading-tight tracking-tight">
-                Doctor access with a
+                Welcome back,
                 <span className="block bg-gradient-to-r from-sky-600 via-blue-600 to-violet-600 bg-clip-text text-transparent">
-                  permanent Doctor ID
+                  doctor
                 </span>
               </h1>
               <p className="max-w-xl text-lg text-slate-600 leading-relaxed">
-                Use your permanent Doctor ID to request an OTP. If the ID exists, we send the OTP to your registered
-                email and take you straight to the dashboard after verification.
+                Sign in with your Doctor ID and OTP to open appointments, patients, medicines, and records in one secure workspace.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <InfoCard title="Permanent ID" description="Your Doctor ID stays fixed for future logins and is remembered on this device when available." />
-              <InfoCard title="OTP Verified" description="Only the OTP sent to your registered email can complete doctor access." />
+              <InfoCard title="Fast Access" description="Your saved Doctor ID can prefill automatically on this device." />
+              <InfoCard title="OTP Secure" description="A fresh code confirms every login before the dashboard opens." />
             </div>
           </div>
 
@@ -260,21 +259,24 @@ const SignInPage = () => {
               <div className="rounded-2xl border border-white/70 bg-white/60 px-4 py-3 text-sm text-slate-600">
                 {otpSent
                   ? `We sent a 4-digit OTP to ${emailPreview || 'your registered email'}.`
-                  : 'Enter your Doctor ID, doctor name, and doctor email. If they match our records, we will send the OTP.'}
+                  : 'Enter your Doctor ID, name, and email to receive an OTP.'}
               </div>
             </form>
 
-            <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+            <div className="mt-6 flex flex-col gap-4 overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-violet-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-black text-slate-900">New doctor?</p>
-                <p className="mt-1 text-sm text-slate-500">Create your doctor account, get a permanent Doctor ID, and keep it for future logins.</p>
+                <p className="mt-1 text-sm text-slate-500">Create your account and receive your Doctor ID.</p>
               </div>
               <Link
                 to="/sign-up"
-                className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-800"
+                className="group relative inline-flex shrink-0 items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-violet-500 px-5 py-3.5 text-sm font-black text-white shadow-[0_16px_40px_rgba(59,130,246,0.24)] transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_22px_55px_rgba(99,102,241,0.32)] focus:outline-none focus:ring-4 focus:ring-sky-300/35"
               >
-                <MailCheck className="h-4 w-4" />
-                Sign Up
+                <span className="absolute inset-y-0 -left-1/2 w-1/2 skew-x-[-20deg] bg-white/25 transition-transform duration-700 group-hover:translate-x-[340%]" />
+                <Sparkles className="absolute right-3 top-2 h-3.5 w-3.5 text-white/70 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-125" />
+                <UserPlus className="relative h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+                <span className="relative">Create Account</span>
+                <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </div>
           </div>

@@ -14,10 +14,27 @@ const logReminder = (message) => {
   console.log(`[Reminder] ${message}`);
 };
 
+const APPOINTMENT_TYPES = new Set(['CLINIC_VISIT', 'VIDEO_CALL', 'CHAT_CONSULTATION', 'EMERGENCY']);
+const APPOINTMENT_TIME_SLOTS = [
+  '09:00 AM',
+  '09:30 AM',
+  '10:00 AM',
+  '10:30 AM',
+  '11:00 AM',
+  '11:30 AM',
+  '02:00 PM',
+  '02:30 PM',
+  '03:00 PM',
+  '03:30 PM',
+  '04:00 PM',
+  '04:30 PM',
+];
+
 const toDoctorSummary = (doctor) => ({
   id: doctor._id.toString(),
   name: doctor.name,
   email: doctor.email,
+  specialization: doctor.specialization || null,
 });
 
 const toPatientSummary = (patient) => ({
@@ -31,7 +48,7 @@ const toPatientSummary = (patient) => ({
 const hydrateAppointment = async (appointment) => {
   const value = appointment.toObject ? appointment.toObject() : { ...appointment };
   const [doctor, patient] = await Promise.all([
-    User.findById(value.doctorId).select('_id name email').lean(),
+    User.findById(value.doctorId).select('_id name email specialization').lean(),
     User.findById(value.patientUserId).select('_id name email').lean(),
   ]);
 
@@ -46,7 +63,7 @@ const hydrateAppointment = async (appointment) => {
 export const getDoctors = async (req, res) => {
   try {
     const doctors = await User.find({ role: 'DOCTOR', isVerified: true })
-      .select('_id name email')
+      .select('_id name email specialization')
       .sort({ name: 1 })
       .lean();
 
@@ -57,12 +74,65 @@ export const getDoctors = async (req, res) => {
   }
 };
 
+export const getAppointmentAvailability = async (req, res) => {
+  try {
+    const doctorId = req.query.doctorId?.trim();
+    const dates = req.query.dates
+      ?.split(',')
+      .map((date) => date.trim())
+      .filter(Boolean);
+
+    if (!doctorId || !dates?.length) {
+      return res.status(400).json({ error: 'Doctor and dates are required' });
+    }
+
+    const doctor = await User.findById(doctorId).select('_id role').lean();
+    if (!doctor || doctor.role !== 'DOCTOR') {
+      return res.status(404).json({ error: 'Doctor not found' });
+    }
+
+    const appointments = await Appointment.find({
+      doctorId,
+      date: { $in: dates },
+      status: { $in: ['PENDING', 'ACCEPTED'] },
+    })
+      .select('date time status')
+      .lean();
+
+    const availability = dates.map((date) => {
+      const bookedSlots = appointments
+        .filter((appointment) => appointment.date === date)
+        .map((appointment) => appointment.time);
+      const uniqueBookedSlots = [...new Set(bookedSlots)];
+      const availableSlots = APPOINTMENT_TIME_SLOTS.filter((slot) => !uniqueBookedSlots.includes(slot));
+
+      return {
+        date,
+        totalSlots: APPOINTMENT_TIME_SLOTS.length,
+        bookedSlots: uniqueBookedSlots,
+        availableSlots,
+        availableCount: availableSlots.length,
+        bookedCount: uniqueBookedSlots.length,
+      };
+    });
+
+    res.json({ availability });
+  } catch (error) {
+    console.error('Error fetching appointment availability:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const createAppointment = async (req, res) => {
   try {
-    const { doctorId, date, time, reason } = req.body;
+    const { doctorId, date, time, reason, appointmentType } = req.body;
 
     if (!doctorId || !date || !time) {
       return res.status(400).json({ error: 'Doctor, date, and time are required' });
+    }
+
+    if (appointmentType && !APPOINTMENT_TYPES.has(appointmentType)) {
+      return res.status(400).json({ error: 'Invalid appointment type' });
     }
 
     const [doctor, patient, patientProfile] = await Promise.all([
@@ -95,6 +165,7 @@ export const createAppointment = async (req, res) => {
       doctorId,
       date,
       time,
+      appointmentType: appointmentType || 'CLINIC_VISIT',
       reason: reason?.trim() || null,
       status: 'PENDING',
     });

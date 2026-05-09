@@ -29,7 +29,7 @@ export const getPatientProfile = async (req, res) => {
 
   try {
     const [user, patientProfile] = await Promise.all([
-      User.findById(id).select('_id name email role phone').lean(),
+      User.findById(id).select('_id name email role phone profileImageUrl').lean(),
       PatientProfile.findOne({ userId: id }).lean(),
     ]);
 
@@ -49,11 +49,49 @@ export const getPatientProfile = async (req, res) => {
       email: user.email,
       role: user.role,
       phone: user.phone || null,
+      profileImageUrl: user.profileImageUrl || null,
       patientProfile: hydratedProfile,
     });
   } catch (error) {
     console.error('Error fetching patient profile:', error);
     res.status(500).json({ error: 'Failed to fetch patient profile' });
+  }
+};
+
+export const uploadProfilePicture = async (req, res) => {
+  const id = req.params.id || req.user.id;
+  const imageUrl = req.file?.path;
+
+  if (req.user.role !== 'ADMIN' && req.user.id !== id) {
+    return res.status(403).json({ error: 'You can only update your own profile picture' });
+  }
+
+  if (!imageUrl) {
+    return res.status(400).json({ error: 'No profile picture uploaded' });
+  }
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      id,
+      { $set: { profileImageUrl: imageUrl } },
+      { new: true }
+    ).select('_id name email role phone profileImageUrl');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone || null,
+      profileImageUrl: user.profileImageUrl || null,
+    });
+  } catch (error) {
+    console.error('Error uploading profile picture:', error);
+    res.status(500).json({ error: 'Failed to upload profile picture' });
   }
 };
 
@@ -102,12 +140,23 @@ export const getDashboardStats = async (req, res) => {
     const totalRecords = records.length;
     const activeReminders = patientProfile.activeReminders || 0;
     const activePrescriptions = records.filter((record) => record.type === 'PRESCRIPTION').length;
+    const profileCompletion = patientProfile.bloodGroup && patientProfile.emergencyContact ? 92 : patientProfile.bloodGroup || patientProfile.emergencyContact ? 68 : 36;
+    const reminderSupport = Math.min(100, activeReminders * 20 + 20);
+    const recordsCoverage = Math.min(100, totalRecords * 18 + 22);
+    const safetyReadiness = patientProfile.allergies || patientProfile.emergencyContact ? 82 : 48;
+    const healthScore = Math.round((profileCompletion + reminderSupport + recordsCoverage + safetyReadiness) / 4);
 
     res.status(200).json({
       totalRecords,
       activeReminders,
       activePrescriptions,
-      healthScore: Math.min(100, 60 + totalRecords * 5),
+      healthScore,
+      healthBreakdown: {
+        profileCompletion,
+        reminderSupport,
+        recordsCoverage,
+        safetyReadiness,
+      },
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);

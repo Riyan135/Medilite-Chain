@@ -3,6 +3,7 @@ import {
   getDoctors, 
   createAppointment, 
   updateAppointmentStatus, 
+  getAppointmentAvailability,
   getDoctorPendingAppointments,
   getAppointmentById,
   getAppointmentHistory,
@@ -12,6 +13,7 @@ import {
 const router = express.Router();
 
 router.get('/doctors', getDoctors);
+router.get('/availability', getAppointmentAvailability);
 router.post('/book', createAppointment);
 router.get('/pending', getDoctorPendingAppointments);
 router.get('/history', getAppointmentHistory);

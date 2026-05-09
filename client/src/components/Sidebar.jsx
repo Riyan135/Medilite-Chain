@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutGrid, FileText, Bell, Clock, QrCode, LogOut, User, Pill, MessageSquare, ShieldCheck, Activity, AlertTriangle, Users, Calendar, ClipboardPlus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutGrid, FileText, Bell, Clock, LogOut, User, Pill, MessageSquare, ShieldCheck, Activity, AlertTriangle, Users, Calendar, ClipboardPlus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LanguageSwitcher from './LanguageSwitcher';
+
+const MediLiteLogo = ({ className = '' }) => (
+  <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1d4ed8] via-[#2563eb] to-[#06b6d4] text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/70 ${className}`}>
+    <svg viewBox="0 0 32 32" className="h-6 w-6" aria-hidden="true">
+      <path fill="currentColor" fillOpacity="0.22" d="M16 2.8 27.2 8v8.4c0 6.1-4.5 10.8-11.2 12.8C9.3 27.2 4.8 22.5 4.8 16.4V8L16 2.8Z" />
+      <path fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" d="M8.5 18.1h3.1l2-5.2 4.1 8.4 2.2-5h3.6" />
+      <path fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" d="M10 10.8v9.4M22 10.8v9.4" opacity="0.82" />
+    </svg>
+  </span>
+);
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -23,7 +33,7 @@ const Sidebar = () => {
       { name: 'Records', icon: FileText, path: '/records' },
       { name: 'Reminders', icon: Bell, path: '/reminders' },
       { name: 'Timeline', icon: Clock, path: '/timeline' },
-      { name: 'My QR', icon: QrCode, path: '/qr' },
+      { name: 'My Profile', icon: User, path: '/qr' },
       { name: 'Emergency SOS', icon: AlertTriangle, path: '/emergency' },
     ],
     'DOCTOR': [
@@ -36,11 +46,14 @@ const Sidebar = () => {
 
   return (
     <div className={`flex h-screen flex-col border-r border-slate-200/60 bg-white/70 backdrop-blur-2xl shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-40 transition-all duration-300 ${isOpen ? 'w-64' : 'w-24'}`}>
-      <div className="flex h-20 items-center justify-between border-b border-slate-100 px-4">
+      <div className={`flex h-20 items-center justify-between border-b border-slate-100 ${isOpen ? 'px-4' : 'px-3'}`}>
         {isOpen ? (
-          <h1 className="text-2xl font-bold text-blue-600">MediLite</h1>
+          <div className="flex items-center gap-2">
+            <MediLiteLogo />
+            <h1 className="text-2xl font-bold text-blue-600">MediLite</h1>
+          </div>
         ) : (
-          <h1 className="text-2xl font-bold text-blue-600 mx-auto">M</h1>
+          <MediLiteLogo />
         )}
         <button
           type="button"

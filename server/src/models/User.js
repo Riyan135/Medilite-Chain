@@ -10,6 +10,7 @@ const userSchema = new mongoose.Schema(
     specialization: { type: String, default: null, trim: true },
     role: { type: String, enum: ['PATIENT', 'DOCTOR', 'ADMIN'], default: 'PATIENT' },
     phone: { type: String, default: null },
+    profileImageUrl: { type: String, default: null },
     isVerified: { type: Boolean, default: false },
     lastPortalLoginAt: { type: Date, default: null },
     portalLoginCount: { type: Number, default: 0 },

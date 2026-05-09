@@ -23,9 +23,12 @@ const configureDnsResolvers = () => {
 
   if (hasOnlyLoopbackServers) {
     dns.setServers(['1.1.1.1', '8.8.8.8']);
-    console.warn(
-      'Loopback-only DNS detected. Falling back to public DNS resolvers for MongoDB SRV lookup.'
-    );
+
+    if (process.env.LOG_LEVEL === 'debug' || process.env.LOG_LEVEL === 'verbose') {
+      console.warn(
+        'Loopback-only DNS detected. Falling back to public DNS resolvers for MongoDB SRV lookup.'
+      );
+    }
   }
 };
 

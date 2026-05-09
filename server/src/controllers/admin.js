@@ -9,6 +9,7 @@ export const getSystemStats = async (req, res) => {
   try {
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const doctorScopedQuery = req.user?.role === 'DOCTOR' ? { doctorId: req.user.id } : {};
 
     const [
       totalUsers,
@@ -30,13 +31,13 @@ export const getSystemStats = async (req, res) => {
       User.countDocuments({ role: 'DOCTOR', isVerified: false }),
       User.countDocuments({ role: 'PATIENT', lastPortalLoginAt: { $ne: null } }),
       MedicalRecord.find().sort({ createdAt: -1 }).limit(4).lean(),
-      Appointment.countDocuments(),
-      Appointment.countDocuments({ date: today }),
-      Appointment.countDocuments({ status: 'ACCEPTED' }),
-      Appointment.countDocuments({ status: 'PENDING' }),
-      Consultation.countDocuments(),
-      Consultation.countDocuments({ status: 'ONGOING' }),
-      Consultation.countDocuments({ status: 'COMPLETED' }),
+      Appointment.countDocuments(doctorScopedQuery),
+      Appointment.countDocuments({ ...doctorScopedQuery, date: today }),
+      Appointment.countDocuments({ ...doctorScopedQuery, status: 'ACCEPTED' }),
+      Appointment.countDocuments({ ...doctorScopedQuery, status: 'PENDING' }),
+      Consultation.countDocuments(doctorScopedQuery),
+      Consultation.countDocuments({ ...doctorScopedQuery, status: 'ONGOING' }),
+      Consultation.countDocuments({ ...doctorScopedQuery, status: 'COMPLETED' }),
       Medicine.find().lean(),
     ]);
 

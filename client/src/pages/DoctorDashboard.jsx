@@ -34,6 +34,13 @@ const statusTheme = {
   COMPLETED: 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-500/30',
 };
 
+const appointmentTypeLabels = {
+  CLINIC_VISIT: 'Clinic Visit',
+  VIDEO_CALL: 'Video Call',
+  CHAT_CONSULTATION: 'Chat',
+  EMERGENCY: 'Emergency',
+};
+
 const StatCard = ({ title, value, subtitle, icon: Icon, tone = 'blue' }) => {
   const tones = {
     blue: 'from-blue-50 to-blue-100 text-blue-600 dark:from-blue-500/10 dark:to-blue-600/10 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/20',
@@ -569,6 +576,9 @@ const DoctorDashboard = () => {
                       <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 mb-3 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg">
                         <Calendar className="w-3.5 h-3.5" /> {appointment.date} <span className="text-slate-300 dark:text-slate-600">|</span> {appointment.time}
                       </div>
+                      <div className="mb-3 inline-flex rounded-lg bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                        {appointmentTypeLabels[appointment.appointmentType] || 'Clinic Visit'}
+                      </div>
                       <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-4 line-clamp-2">"{appointment.reason || 'No reason provided.'}"</p>
                       <div className="flex gap-2">
                         <button
@@ -639,4 +649,3 @@ const DoctorDashboard = () => {
 };
 
 export default DoctorDashboard;
-

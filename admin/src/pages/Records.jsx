@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import AdminTopbar from '../components/AdminTopbar';
-import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle } from 'lucide-react';
+import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle, Share2 } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -100,6 +100,29 @@ const Records = () => {
     }
   };
 
+  const handleShare = async (record) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Medical Record: ${record.title}`,
+          text: `Sharing medical record: ${record.title}`,
+          url: record.fileUrl,
+        });
+      } catch (error) {
+        console.error('Error sharing record:', error);
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(record.fileUrl);
+      toast.success('File link copied to clipboard');
+    } catch (error) {
+      console.error('Error copying record link:', error);
+      toast.error('Unable to share this file');
+    }
+  };
+
 
 
   const filteredRecords = records.filter(record => {
@@ -112,23 +135,26 @@ const Records = () => {
     <div className="flex min-h-screen bg-transparent">
       <Sidebar role="admin" />
       <main className="flex-1 overflow-y-auto px-4 pb-8 pt-20 md:px-8 md:pt-8">
-        <div className="flex justify-between items-center mb-10 flex-wrap gap-4">
+        <div className="mb-10">
           <AdminTopbar
             title="Medical Records"
             subtitle="Access records, generate summaries, and review patient documents in a cleaner workspace."
+            showNotifications={false}
           />
-          <button
-            onClick={handleGenerateOverview}
-            disabled={generatingOverview || records.length === 0}
-            className="flex items-center px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all disabled:opacity-50"
-          >
-            {generatingOverview ? (
-              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
-            ) : (
-              <BrainCircuit className="w-5 h-5 mr-2" />
-            )}
-            Whole Picture Summary
-          </button>
+          <div className="flex justify-end">
+            <button
+              onClick={handleGenerateOverview}
+              disabled={generatingOverview || records.length === 0}
+              className="flex items-center px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-lg shadow-slate-200 hover:bg-slate-800 transition-all disabled:opacity-50"
+            >
+              {generatingOverview ? (
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
+              ) : (
+                <BrainCircuit className="w-5 h-5 mr-2" />
+              )}
+              Whole Picture Summary
+            </button>
+          </div>
         </div>
 
 
@@ -233,14 +259,24 @@ const Records = () => {
                   </button>
                 </div>
 
-                <a
-                  href={record.fileUrl}
-                  download
-                  className="w-full flex items-center justify-center py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download File
-                </a>
+                <div className="grid grid-cols-2 gap-3">
+                  <a
+                    href={record.fileUrl}
+                    download
+                    className="flex items-center justify-center py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download File
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleShare(record)}
+                    className="flex items-center justify-center py-3 bg-slate-50 text-slate-700 rounded-xl font-bold hover:bg-slate-100 transition-colors"
+                  >
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Share File
+                  </button>
+                </div>
               </div>
             ))}
           </div>

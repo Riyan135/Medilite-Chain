@@ -247,7 +247,7 @@ const PatientDetails = () => {
   }
 
   return (
-    <div className="flex h-screen bg-transparent">
+    <div className="flex h-screen bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.12),transparent_28%),linear-gradient(180deg,#f8fbff_0%,#eef4ff_100%)]">
       <Sidebar role="admin" />
       <main className="flex-1 overflow-y-auto p-8">
         <button 
@@ -258,68 +258,72 @@ const PatientDetails = () => {
           Back to Dashboard
         </button>
 
-        <header className="flex justify-between items-start mb-10 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-          <div className="flex items-center">
-            <div className="w-20 h-20 bg-indigo-50 rounded-2xl flex items-center justify-center mr-6">
-              <User className="w-10 h-10 text-indigo-600" />
-            </div>
-            <div>
-              <div className="flex items-center gap-4">
-                <h1 className="text-3xl font-extrabold text-slate-900">{patient.name}</h1>
-                <button 
-                  onClick={() => setActiveChat({ id: patient.id, name: patient.name })}
-                  className="p-2 bg-primary/10 text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
-                  title="Chat with Patient"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                </button>
-                <button 
-                  onClick={() => startCall('voice')}
-                  className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                  title="Voice Call Patient"
-                >
-                  <Phone className="w-5 h-5" />
-                </button>
-                <button 
+        <header className="mb-10 overflow-hidden rounded-[2.5rem] bg-slate-950 shadow-2xl shadow-blue-900/15">
+          <div className="relative p-8 md:p-10">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.45),transparent_32%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.28),transparent_30%)]" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+            <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-col gap-6 md:flex-row md:items-center">
+                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[2rem] bg-white/12 text-white ring-1 ring-white/20 backdrop-blur-md shadow-2xl shadow-blue-950/40">
+                  <User className="h-12 w-12" />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-200">Patient Workspace</p>
+                  <h1 className="mt-2 text-4xl font-black tracking-tight text-white">{patient.name}</h1>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <span className="rounded-full bg-white/12 px-4 py-2 text-xs font-black text-white ring-1 ring-white/15">{patient.patientProfile?.bloodGroup || 'No Blood Group'}</span>
+                    <span className="rounded-full bg-emerald-400/15 px-4 py-2 text-xs font-black text-emerald-200 ring-1 ring-emerald-300/20">Active Patient</span>
+                    {patient.patientProfile?.consultingDoctor && (
+                      <span className="flex items-center gap-1 rounded-full bg-indigo-400/15 px-4 py-2 text-xs font-black text-indigo-100 ring-1 ring-indigo-200/20">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        Dr. {patient.patientProfile.consultingDoctor.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[520px]">
+                <button
                   onClick={() => startCall('video')}
-                  className="p-2 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                  title="Video Call Patient"
+                  className="group flex items-center justify-center gap-3 rounded-2xl bg-blue-500 px-5 py-4 font-black text-white shadow-xl shadow-blue-950/30 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-400"
                 >
-                  <Video className="w-5 h-5" />
+                  <Video className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+                  Start Video Call
+                </button>
+                <button
+                  onClick={() => startCall('voice')}
+                  className="group flex items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-5 py-4 font-black text-white shadow-xl shadow-emerald-950/25 transition-all duration-300 hover:-translate-y-1 hover:bg-emerald-400"
+                >
+                  <Phone className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+                  Voice Call
+                </button>
+                <button
+                  onClick={() => setActiveChat({ id: patient.id, name: patient.name })}
+                  className="group flex items-center justify-center gap-3 rounded-2xl bg-white/12 px-5 py-4 font-black text-white ring-1 ring-white/15 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:bg-white/18"
+                >
+                  <MessageSquare className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+                  Open Chat
+                </button>
+                <button
+                  onClick={handleGenerateOverview}
+                  disabled={generatingOverview || !patient?.patientProfile?.records?.length}
+                  className="group flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-fuchsia-500 via-indigo-500 to-cyan-500 px-5 py-4 font-black text-white shadow-xl shadow-indigo-950/30 transition-all duration-300 hover:-translate-y-1 disabled:cursor-not-allowed disabled:opacity-50 animate-[glow-pulse_5.5s_ease-in-out_infinite]"
+                >
+                  {generatingOverview ? (
+                    <div className="h-5 w-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                  ) : (
+                    <BrainCircuit className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+                  )}
+                  Whole Picture Summary
                 </button>
               </div>
-              <div className="flex flex-wrap gap-4 mt-2">
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">{patient.patientProfile?.bloodGroup || 'No Blood Group'}</span>
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Active Patient</span>
-                {patient.patientProfile?.consultingDoctor && (
-                   <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full flex items-center gap-1">
-                     <ShieldCheck className="w-3 h-3" />
-                     Dr. {patient.patientProfile.consultingDoctor.name}
-                   </span>
-                )}
-              </div>
             </div>
-          </div>
-          <div className="text-right flex flex-col items-end">
-            <p className="text-sm font-semibold text-slate-400">Patient Hash</p>
-            <p className="text-lg font-bold text-slate-800 mb-4">#{patient.id.slice(-6).toUpperCase()}</p>
-            <button
-              onClick={handleGenerateOverview}
-              disabled={generatingOverview || !patient?.patientProfile?.records?.length}
-              className="flex items-center px-4 py-2 bg-slate-900 text-white rounded-xl font-bold shadow-sm hover:bg-slate-800 transition-all disabled:opacity-50 text-sm"
-            >
-              {generatingOverview ? (
-                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2" />
-              ) : (
-                <BrainCircuit className="w-4 h-4 mr-2" />
-              )}
-              Whole Picture Summary
-            </button>
           </div>
         </header>
 
         {patient.patientProfile?.consultingDoctorId === doctorUser?.id && (
-           <div className="mb-8 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-between">
+           <div className="mb-8 flex items-center justify-between rounded-[2rem] bg-indigo-50/90 p-5 shadow-lg shadow-indigo-100/60">
              <div className="flex items-center gap-4">
                <div className="p-2 bg-indigo-100 rounded-lg">
                  <ShieldCheck className="w-6 h-6 text-indigo-600" />
@@ -334,7 +338,7 @@ const PatientDetails = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <section className="bg-white p-8 rounded-3xl border border-slate-200">
+            <section className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50">
               <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
                 <Plus className="w-5 h-5 mr-2 text-primary" />
                 Add Consultation Note
@@ -345,39 +349,43 @@ const PatientDetails = () => {
                   value={noteTitle}
                   onChange={(e) => setNoteTitle(e.target.value)}
                   placeholder="Note Title"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none font-bold"
+                  className="w-full rounded-2xl bg-slate-50/80 px-5 py-4 font-bold text-slate-800 outline-none ring-1 ring-slate-100 transition-all focus:bg-white focus:ring-4 focus:ring-blue-600/10"
                 />
                 <textarea 
                   rows="4"
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                  className="w-full resize-none rounded-2xl bg-slate-50/80 px-5 py-4 font-medium text-slate-700 outline-none ring-1 ring-slate-100 transition-all focus:bg-white focus:ring-4 focus:ring-blue-600/10"
                   placeholder="Enter medical findings, prescriptions, or advice..."
                 />
                 <button 
                   disabled={submitting || !noteContent}
-                  className="px-8 py-3 bg-primary text-white rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20 disabled:bg-slate-300 disabled:shadow-none"
+                  className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25 disabled:bg-slate-300 disabled:shadow-none w-full md:w-auto"
                 >
                   {submitting ? 'Saving...' : 'Save Consultation Note'}
                 </button>
               </form>
             </section>
 
-            <section className="bg-white p-8 rounded-3xl border border-slate-200">
+            <section className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50">
               <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-indigo-500" />
                 Medical Timeline
               </h3>
-              <div className="space-y-6">
+              <div className="relative space-y-6 before:absolute before:left-[0.55rem] before:top-2 before:h-[calc(100%-1rem)] before:w-px before:bg-gradient-to-b before:from-indigo-300 before:via-blue-200 before:to-transparent">
                 {patient.patientProfile?.notes?.length > 0 ? (
                   patient.patientProfile.notes.map((note) => (
-                    <div key={note.id} className="relative pl-8 border-l-2 border-slate-100 pb-6">
-                      <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-indigo-500" />
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-slate-900">{note.title}</h4>
-                        <span className="text-xs font-bold text-slate-400">{new Date(note.date || note.createdAt).toLocaleDateString()}</span>
+                    <div key={note.id} className="relative pl-10">
+                      <div className="absolute left-0 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 shadow-lg shadow-indigo-200">
+                        <div className="h-2 w-2 rounded-full bg-white" />
                       </div>
-                      <p className="text-sm text-slate-600 leading-relaxed">{note.content || note.note}</p>
+                      <div className="rounded-2xl bg-slate-50/80 p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-blue-100/60">
+                        <div className="mb-2 flex items-start justify-between gap-4">
+                          <h4 className="font-black text-slate-900">{note.title}</h4>
+                          <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-400 shadow-sm">{new Date(note.date || note.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-slate-600">{note.content || note.note}</p>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -386,24 +394,29 @@ const PatientDetails = () => {
               </div>
             </section>
 
-            <section className="bg-white p-8 rounded-3xl border border-slate-200">
+            <section className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50">
               <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
                 <Activity className="w-5 h-5 mr-2 text-indigo-500" />
                 Symptom Check History
               </h3>
-              <div className="space-y-6">
+              <div className="relative space-y-6 before:absolute before:left-[0.55rem] before:top-2 before:h-[calc(100%-1rem)] before:w-px before:bg-gradient-to-b before:from-emerald-300 before:via-cyan-200 before:to-transparent">
                 {symptomHistory?.length > 0 ? (
                   symptomHistory.map((check) => (
-                    <div key={check.id} className="p-4 border border-slate-100 rounded-xl bg-slate-50">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold text-slate-900">{check.predictedDisease}</h4>
-                        <span className="text-xs font-bold text-slate-400">{new Date(check.date).toLocaleDateString()}</span>
+                    <div key={check.id} className="relative pl-10">
+                      <div className="absolute left-0 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 shadow-lg shadow-emerald-100">
+                        <div className="h-2 w-2 rounded-full bg-white" />
                       </div>
-                      <p className="text-sm text-slate-600 mb-3"><span className="font-semibold text-slate-800">Symptoms:</span> {check.symptoms}</p>
-                      <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider flex-wrap">
-                        <span className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md">{check.doctorSuggested}</span>
-                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md">{check.careType}</span>
-                        <span className={`px-2 py-1 rounded-md ${check.riskLevel?.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' : check.riskLevel?.toLowerCase() === 'medium' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>Risk: {check.riskLevel || 'Unknown'}</span>
+                      <div className="rounded-2xl bg-slate-50/80 p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-emerald-100/60">
+                        <div className="mb-2 flex items-start justify-between gap-4">
+                          <h4 className="font-black text-slate-900">{check.predictedDisease}</h4>
+                          <span className="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-400 shadow-sm">{new Date(check.date).toLocaleDateString()}</span>
+                        </div>
+                        <p className="mb-3 text-sm text-slate-600"><span className="font-semibold text-slate-800">Symptoms:</span> {check.symptoms}</p>
+                        <div className="flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wider">
+                          <span className="rounded-md bg-indigo-100 px-2 py-1 text-indigo-700">{check.doctorSuggested}</span>
+                          <span className="rounded-md bg-blue-100 px-2 py-1 text-blue-700">{check.careType}</span>
+                          <span className={`rounded-md px-2 py-1 ${check.riskLevel?.toLowerCase() === 'high' ? 'bg-red-100 text-red-700' : check.riskLevel?.toLowerCase() === 'medium' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>Risk: {check.riskLevel || 'Unknown'}</span>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -415,17 +428,17 @@ const PatientDetails = () => {
           </div>
 
           <aside className="space-y-8">
-            <div className="bg-white p-8 rounded-3xl border border-slate-200">
+            <div className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50">
               <h3 className="text-lg font-bold text-slate-800 mb-6">Patient Vitals</h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                <div className="flex items-center justify-between rounded-2xl bg-rose-50/70 p-4">
                   <div className="flex items-center">
                     <Activity className="w-5 h-5 text-red-500 mr-3" />
                     <span className="text-sm font-semibold text-slate-600">Allergies</span>
                   </div>
                   <span className="text-sm font-bold text-slate-900">{patient.patientProfile?.allergies || 'None'}</span>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                <div className="flex items-center justify-between rounded-2xl bg-amber-50/70 p-4">
                   <div className="flex items-center">
                     <Pill className="w-5 h-5 text-amber-500 mr-3" />
                     <span className="text-sm font-semibold text-slate-600">Medications</span>
@@ -435,11 +448,11 @@ const PatientDetails = () => {
               </div>
             </div>
 
-            <div className="bg-white p-8 rounded-3xl border border-slate-200">
+            <div className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50">
               <h3 className="text-lg font-bold text-slate-800 mb-6">Medical Records</h3>
               <div className="space-y-3">
                 {patient.patientProfile?.records?.map(record => (
-                  <div key={record.id} className="flex flex-col gap-2 p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors group">
+                  <div key={record.id} className="group flex flex-col gap-2 rounded-2xl bg-slate-50/80 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-lg hover:shadow-blue-100/60">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center overflow-hidden">
                         <FileText className="w-4 h-4 text-slate-400 mr-3 shrink-0" />

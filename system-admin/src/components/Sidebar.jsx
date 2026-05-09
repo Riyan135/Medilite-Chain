@@ -4,22 +4,27 @@ import {
   ActivitySquare,
   BarChart3,
   BellRing,
-  FileBadge2,
-  HardDriveDownload,
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  PlugZap,
   ScrollText,
   Settings,
-  ShieldCheck,
-  SlidersHorizontal,
   User,
   UsersRound,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const MediLiteLogo = ({ className = '' }) => (
+  <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1d4ed8] via-[#2563eb] to-[#06b6d4] text-white shadow-lg shadow-blue-500/25 ring-1 ring-white/70 ${className}`}>
+    <svg viewBox="0 0 32 32" className="h-6 w-6" aria-hidden="true">
+      <path fill="currentColor" fillOpacity="0.22" d="M16 2.8 27.2 8v8.4c0 6.1-4.5 10.8-11.2 12.8C9.3 27.2 4.8 22.5 4.8 16.4V8L16 2.8Z" />
+      <path fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" d="M8.5 18.1h3.1l2-5.2 4.1 8.4 2.2-5h3.6" />
+      <path fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" d="M10 10.8v9.4M22 10.8v9.4" opacity="0.82" />
+    </svg>
+  </span>
+);
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -34,16 +39,11 @@ const Sidebar = () => {
 
   const links = [
     { name: 'Overview', icon: LayoutDashboard, path: '/dashboard' },
-    { name: 'Access Control', icon: ShieldCheck, path: '/access-control' },
     { name: 'User Governance', icon: UsersRound, path: '/user-governance' },
     { name: 'Monitoring', icon: ActivitySquare, path: '/system-monitoring' },
     { name: 'Audit Logs', icon: ScrollText, path: '/audit-logs' },
     { name: 'Notifications', icon: BellRing, path: '/notifications' },
     { name: 'Reports', icon: BarChart3, path: '/reports' },
-    { name: 'Integrations', icon: PlugZap, path: '/integrations' },
-    { name: 'Policies', icon: SlidersHorizontal, path: '/policies' },
-    { name: 'Backups', icon: HardDriveDownload, path: '/backups' },
-    { name: 'Content Center', icon: FileBadge2, path: '/content-center' },
     { name: 'Profile', icon: User, path: '/profile' },
     { name: 'Settings', icon: Settings, path: '/settings' },
   ];
@@ -64,10 +64,14 @@ const Sidebar = () => {
           collapsed ? 'w-[92px]' : 'w-72'
         } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
-        <div className="flex h-20 items-center justify-between border-b border-slate-100 px-5">
+        <div className={`flex h-20 items-center justify-between border-b border-slate-100 ${collapsed ? 'px-3' : 'px-5'}`}>
           <div className={`overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-            <h1 className="text-2xl font-bold text-[#1d4ed8]">System Admin</h1>
+            <div className="flex items-center gap-2">
+              <MediLiteLogo />
+              <h1 className="text-2xl font-bold text-[#1d4ed8]">System Admin</h1>
+            </div>
           </div>
+          {collapsed && <MediLiteLogo />}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCollapsed((current) => !current)}

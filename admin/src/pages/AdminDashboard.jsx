@@ -10,7 +10,7 @@ import { getSocket } from '../lib/socket';
 import ConsultationCallModal from '../components/ConsultationCallModal';
 import { useNavigate } from 'react-router-dom';
 
-const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
+const StatCard = ({ title, value, subtitle, icon: Icon, theme, onClick }) => {
   const themes = {
     blue: {
       bg: "bg-blue-50/50 dark:bg-blue-500/10",
@@ -40,8 +40,14 @@ const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
   
   const t = themes[theme] || themes.blue;
 
+  const CardElement = onClick ? 'button' : 'div';
+
   return (
-    <div className="relative overflow-hidden rounded-[2rem] p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-white/80 dark:hover:border-slate-700 group">
+    <CardElement
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-[2rem] p-6 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:border-white/80 dark:hover:border-slate-700 group ${onClick ? 'w-full text-left cursor-pointer focus:outline-none focus:ring-4 focus:ring-blue-500/15' : ''}`}
+    >
       <div className={`absolute -top-8 -right-8 w-40 h-40 bg-gradient-to-br ${t.gradient} rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700`}></div>
       <div className={`absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-tr ${t.gradient} rounded-full blur-2xl opacity-50`}></div>
       
@@ -58,7 +64,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, theme }) => {
           {subtitle}
         </div>
       </div>
-    </div>
+    </CardElement>
   );
 };
 
@@ -268,6 +274,7 @@ const AdminDashboard = () => {
             subtitle="Patients who logged into the portal" 
             icon={Users} 
             theme="blue"
+            onClick={() => document.getElementById('patient-overview')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />
           <StatCard 
             title="Appointments Today" 
@@ -275,6 +282,7 @@ const AdminDashboard = () => {
             subtitle={`${stats?.pendingAppointments || 0} pending requests`} 
             icon={Calendar} 
             theme="emerald"
+            onClick={() => navigate('/appointments')}
           />
           <StatCard 
             title="Total Consultations" 
@@ -282,6 +290,7 @@ const AdminDashboard = () => {
             subtitle={`${stats?.ongoingConsultations || 0} ongoing`} 
             icon={ClipboardList} 
             theme="cyan"
+            onClick={() => navigate('/consultations')}
           />
           <StatCard 
             title="Completed Consultations" 
@@ -289,6 +298,7 @@ const AdminDashboard = () => {
             subtitle={`${stats?.acceptedAppointments || 0} accepted appointments`} 
             icon={Pill} 
             theme="indigo"
+            onClick={() => navigate('/consultations')}
           />
         </section>
 
@@ -299,6 +309,7 @@ const AdminDashboard = () => {
             subtitle="Inventory items in stock"
             icon={Package2}
             theme="blue"
+            onClick={() => navigate('/medicines')}
           />
           <StatCard
             title="Low Stock Alerts"
@@ -306,6 +317,7 @@ const AdminDashboard = () => {
             subtitle="Below threshold"
             icon={AlertTriangle}
             theme="emerald"
+            onClick={() => navigate('/medicines')}
           />
           <StatCard
             title="Expired Medicines"
@@ -313,11 +325,12 @@ const AdminDashboard = () => {
             subtitle={`${stats?.nearExpiryMedicines || 0} near expiry`}
             icon={ShieldAlert}
             theme="indigo"
+            onClick={() => navigate('/medicines')}
           />
         </section>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_0.65fr] gap-8">
-          <section className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
+          <section id="patient-overview" className="scroll-mt-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden transition-colors">
             <div className="p-6 border-b border-slate-50 dark:border-slate-800/50 flex justify-between items-center bg-white/40 dark:bg-slate-900/40">
               <h3 className="text-xl font-bold text-slate-800 dark:text-white">
                 Patient Overview
@@ -400,31 +413,6 @@ const AdminDashboard = () => {
           </section>
 
           <aside className="space-y-8">
-            <section className="rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm transition-colors">
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">Patients Per Day</h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Recent login activity across patient accounts.</p>
-              <div className="mt-6 space-y-4">
-                {patientTrendData.length === 0 ? (
-                  <p className="text-sm text-slate-400 dark:text-slate-500">Patient activity will appear here once patients log in.</p>
-                ) : (
-                  patientTrendData.map((item) => (
-                    <div key={item.label}>
-                      <div className="flex items-center justify-between text-sm font-semibold text-slate-600 dark:text-slate-300">
-                        <span>{item.label}</span>
-                        <span>{item.count}</span>
-                      </div>
-                      <div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-blue-600 via-sky-500 to-amber-400"
-                          style={{ width: `${(item.count / maxTrend) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-
             <section className="rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm transition-colors">
               <h3 className="text-xl font-black text-slate-900 dark:text-white">Quick System Flags</h3>
               <div className="mt-6 space-y-4">
