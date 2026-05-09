@@ -35,7 +35,11 @@ const ConsultationCallModal = ({ call, socket, onClose }) => {
     const setup = async () => {
       try {
         const localStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
           video: call.mode === 'video',
         });
 
