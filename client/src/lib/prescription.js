@@ -11,7 +11,7 @@ export const downloadPrescriptionPdf = async (consultation) => {
   }
 
   const response = await api.get(`/consultations/${consultation.id}/prescription.pdf`, {
-    responseType: 'blob',
+    responseType: 'arraybuffer',
   });
   const blob = new Blob([response.data], { type: 'application/pdf' });
   const url = window.URL.createObjectURL(blob);
@@ -22,5 +22,5 @@ export const downloadPrescriptionPdf = async (consultation) => {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  window.URL.revokeObjectURL(url);
+  setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 };

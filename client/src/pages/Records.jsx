@@ -151,7 +151,7 @@ const Records = () => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(blobUrl);
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
     } catch (error) {
       console.error('Download failed:', error);
       toast.error('Failed to download file directly. Opening in new tab instead.');
