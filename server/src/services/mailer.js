@@ -12,8 +12,6 @@ const buildTransportOptions = ({ host, port, secure }) => ({
   host,
   port,
   secure,
-  family: 4,
-  localAddress: '0.0.0.0',
   auth: {
     user: process.env.EMAIL_USER?.trim(),
     pass: process.env.EMAIL_PASS?.replace(/\s+/g, ''),
@@ -61,7 +59,7 @@ const sendMailWithFallback = async (message) => {
   } catch (error) {
     const canRetryWithGmailFallback =
       isGmailHost() &&
-      (error?.code === 'ECONNECTION' || error?.code === 'ESOCKET');
+      (error?.code === 'ECONNECTION' || error?.code === 'ESOCKET' || error?.code === 'ETIMEDOUT' || error?.code === 'ECONNRESET');
 
     if (!canRetryWithGmailFallback) {
       throw error;
