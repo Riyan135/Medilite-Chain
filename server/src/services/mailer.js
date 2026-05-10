@@ -1,89 +1,43 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-let transporter;
-let gmailFallbackTransporter;
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-const hasMailConfig = () =>
-  Boolean(process.env.SMTP_HOST?.trim() && process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim());
+const hasMailConfig = () => Boolean(process.env.RESEND_API_KEY);
 
-const isGmailHost = () => Boolean(process.env.SMTP_HOST?.trim()?.includes('gmail.com'));
-
-const buildTransportOptions = ({ host, port, secure }) => ({
-  host,
-  port,
-  secure,
-  family: 4,
-  connectionTimeout: 8000,
-  greetingTimeout: 8000,
-  socketTimeout: 8000,
-  auth: {
-    user: process.env.EMAIL_USER?.trim(),
-    pass: process.env.EMAIL_PASS?.replace(/\s+/g, ''),
-  },
-  requireTLS: !secure,
-  tls: {
-    servername: host,
-    rejectUnauthorized: false,
-  },
-});
-
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport(
-      buildTransportOptions({
-        host: process.env.SMTP_HOST?.trim(),
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
-      })
-    );
-  }
-
-  return transporter;
-};
-
-const getGmailFallbackTransporter = () => {
-  if (!gmailFallbackTransporter) {
-    gmailFallbackTransporter = nodemailer.createTransport(
-      buildTransportOptions({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-      })
-    );
-  }
-
-  return gmailFallbackTransporter;
+const getFromEmail = () => {
+  // If using Resend without a custom domain, you MUST use onboarding@resend.dev
+  // If the user adds a custom domain to resend later, they can change this to something like 'Medilite <no-reply@medilite.com>'
+  return 'onboarding@resend.dev';
 };
 
 const sendMailWithFallback = async (message) => {
-  const primaryTransporter = getTransporter();
+  if (!hasMailConfig()) {
+    console.error('Email config missing: RESEND_API_KEY is not set.');
+    throw new Error('Email configuration is incomplete');
+  }
 
   try {
-    return await primaryTransporter.sendMail(message);
-  } catch (error) {
-    const canRetryWithGmailFallback =
-      isGmailHost() &&
-      (error?.code === 'ECONNECTION' || error?.code === 'ESOCKET' || error?.code === 'ETIMEDOUT' || error?.code === 'ECONNRESET');
+    const { data, error } = await resend.emails.send({
+      from: getFromEmail(),
+      to: message.to,
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+    });
 
-    if (!canRetryWithGmailFallback) {
-      throw error;
+    if (error) {
+      console.error('Resend API Error:', error);
+      throw new Error(error.message);
     }
-
-    console.warn(
-      `Primary SMTP connection failed (${error.code}). Retrying Gmail over SSL on port 465.`
-    );
-
-    return getGmailFallbackTransporter().sendMail(message);
+    return data;
+  } catch (error) {
+    console.error('Failed to send email via Resend:', error);
+    throw error;
   }
 };
 
 export const sendOtpEmail = async ({ to, name, otp }) => {
-  if (!hasMailConfig()) {
-    throw new Error('Email configuration is incomplete');
-  }
-
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: 'Your MediLite OTP',
     text: `Hi ${name}, your MediLite OTP is ${otp}. It expires in 10 minutes.`,
@@ -100,19 +54,14 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
     `,
   });
 
-  return { delivered: true, mode: 'smtp' };
+  return { delivered: true, mode: 'resend' };
 };
 
 export const sendDoctorIdEmail = async ({ to, name, doctorId }) => {
-  if (!hasMailConfig()) {
-    throw new Error('Email configuration is incomplete');
-  }
-
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
-    subject: 'Your MediLite Doctor ID',
-    text: `Hi ${name}, your MediLite Doctor ID is ${doctorId}. Use it for future doctor portal login requests.`,
+    subject: 'Your Permanent Doctor ID for MediLite',
+    text: `Hi ${name}, your permanent Doctor ID is ${doctorId}. Keep this for future logins.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
         <h2 style="color: #1d4ed8;">MediLite Doctor ID</h2>
@@ -126,28 +75,28 @@ export const sendDoctorIdEmail = async ({ to, name, doctorId }) => {
     `,
   });
 
-  return { delivered: true, mode: 'smtp' };
+  return { delivered: true, mode: 'resend' };
 };
 
 export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, type = 'created' }) => {
   const subject =
     type === 'due' ? `Medicine Reminder: ${medicineName}` : `Reminder Created: ${medicineName}`;
+
   const intro =
     type === 'due'
       ? `It's time to take your medicine.`
       : `Your medicine reminder has been created successfully.`;
 
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject,
     text: `Hi ${name}, ${intro} Medicine: ${medicineName}, Dosage: ${dosage}, Time: ${time}.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #1d4ed8; margin-bottom: 16px;">MediLite Medicine Reminder</h2>
+        <h2 style="color: #0f172a; margin-bottom: 16px;">${subject}</h2>
         <p>Hi ${name},</p>
         <p>${intro}</p>
-        <div style="margin: 24px 0; padding: 20px; border-radius: 16px; background: #eff6ff; border: 1px solid #bfdbfe;">
+        <div style="margin: 24px 0; padding: 20px; border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0;">
           <p style="margin: 0 0 8px;"><strong>Medicine:</strong> ${medicineName}</p>
           <p style="margin: 0 0 8px;"><strong>Dosage:</strong> ${dosage}</p>
           <p style="margin: 0;"><strong>Time:</strong> ${time}</p>
@@ -160,7 +109,6 @@ export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, 
 
 export const sendEmergencyBookingEmail = async ({ to, name, hospitalName }) => {
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: 'Ambulance Dispatch Confirmed',
     text: `Hi ${name}, your ambulance request has been confirmed. ${hospitalName} has been notified and the ambulance is on the way.`,
@@ -180,12 +128,7 @@ export const sendEmergencyBookingEmail = async ({ to, name, hospitalName }) => {
 };
 
 export const sendPrescriptionReadyEmail = async ({ to, patientName, doctorName, prescriptionUrl }) => {
-  if (!hasMailConfig()) {
-    throw new Error('Email configuration is incomplete');
-  }
-
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: `Prescription received from Dr. ${doctorName || 'Doctor'}`,
     text: `Hi ${patientName || 'Patient'}, you have receive a prescription from Dr. ${doctorName || 'Doctor'}. click below given download button to save the prescription in pdf format: ${prescriptionUrl}`,
@@ -224,5 +167,5 @@ export const sendPrescriptionReadyEmail = async ({ to, patientName, doctorName, 
     `,
   });
 
-  return { delivered: true, mode: 'smtp' };
+  return { delivered: true, mode: 'resend' };
 };
