@@ -1,8 +1,8 @@
 const escapePdfText = (value) =>
   String(value ?? '')
     .replace(/\\/g, '\\\\')
-    .replace(/\\(/g, '\\\\(')
-    .replace(/\\)/g, '\\\\)')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
     .replace(/\r?\n/g, ' ');
 
 const wrapText = (value, maxChars) => {
