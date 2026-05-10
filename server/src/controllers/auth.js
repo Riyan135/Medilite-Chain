@@ -220,10 +220,13 @@ export const requestDoctorOtp = async (req, res) => {
 
   try {
     if (!doctorId || !name || !email) {
+      console.log('Doctor OTP Request Missing Fields:', { doctorId, name, email });
       return res.status(400).json({ error: 'Doctor ID, doctor name, and email are required' });
     }
 
     const user = await User.findOne({ doctorId, role: 'DOCTOR' });
+    console.log('Doctor OTP Request User Lookup:', user ? 'Found User' : 'Not Found', { doctorId });
+
     if (!user) {
       return res.status(404).json({
         error: 'Doctor ID not found. Please create a doctor account first.',
@@ -233,6 +236,15 @@ export const requestDoctorOtp = async (req, res) => {
 
     const isNameMatch = user.name?.trim().toLowerCase() === name.toLowerCase();
     const isEmailMatch = user.email?.trim().toLowerCase() === email;
+
+    console.log('Doctor OTP Match Check:', { 
+      inputName: name, 
+      dbName: user.name, 
+      isNameMatch,
+      inputEmail: email,
+      dbEmail: user.email,
+      isEmailMatch 
+    });
 
     if (!isNameMatch || !isEmailMatch) {
       return res.status(400).json({ error: 'Doctor ID, doctor name, and email do not match our records' });
@@ -252,6 +264,7 @@ export const requestDoctorOtp = async (req, res) => {
       name: user.name,
       otp,
     });
+    console.log('Doctor OTP sent successfully to:', user.email);
 
     res.status(200).json({
       message: 'Doctor OTP sent successfully',
