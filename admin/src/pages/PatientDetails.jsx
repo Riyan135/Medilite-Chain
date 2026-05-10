@@ -28,6 +28,13 @@ const PatientDetails = () => {
   const [symptomHistory, setSymptomHistory] = useState([]);
   const [activeCall, setActiveCall] = useState(null);
   const [incomingCall, setIncomingCall] = useState(null);
+  const [prescriptionForm, setPrescriptionForm] = useState({
+    consultationId: '',
+    diagnosis: '',
+    notes: '',
+    medicines: [{ medicine: '', dosage: '', duration: '', instructions: '' }],
+  });
+  const [savingPrescription, setSavingPrescription] = useState(false);
 
   useEffect(() => {
     if (patient?.patientProfile?.id) {
@@ -149,6 +156,47 @@ const PatientDetails = () => {
       toast.error('Failed to save note');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    const latestConsultation = patient?.patientProfile?.notes?.[0];
+    if (latestConsultation?.id && !prescriptionForm.consultationId) {
+      setPrescriptionForm((current) => ({
+        ...current,
+        consultationId: latestConsultation.id,
+        diagnosis: latestConsultation.title === 'Consultation Note' ? '' : latestConsultation.title || '',
+        notes: latestConsultation.note || '',
+      }));
+    }
+  }, [patient?.patientProfile?.notes, prescriptionForm.consultationId]);
+
+  const handleSavePrescription = async (event) => {
+    event.preventDefault();
+    if (!prescriptionForm.consultationId) {
+      toast.error('Create or select a consultation before saving a prescription');
+      return;
+    }
+
+    setSavingPrescription(true);
+    try {
+      await api.post(`/consultations/${prescriptionForm.consultationId}/prescription`, {
+        diagnosis: prescriptionForm.diagnosis,
+        notes: prescriptionForm.notes,
+        prescription: prescriptionForm.medicines.filter(m => m.medicine.trim() !== ''),
+      });
+      toast.success('Prescription saved with your digital signature details');
+      setPrescriptionForm((current) => ({
+        ...current,
+        medicines: [{ medicine: '', dosage: '', duration: '', instructions: '' }],
+        notes: '',
+      }));
+      fetchPatientDetails();
+    } catch (error) {
+      console.error('Error saving prescription:', error);
+      toast.error('Failed to save prescription');
+    } finally {
+      setSavingPrescription(false);
     }
   };
 
@@ -363,6 +411,128 @@ const PatientDetails = () => {
                   className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/25 disabled:bg-slate-300 disabled:shadow-none w-full md:w-auto"
                 >
                   {submitting ? 'Saving...' : 'Save Consultation Note'}
+                </button>
+              </form>
+            </section>
+
+            <section className="rounded-[2rem] bg-white p-8 shadow-xl shadow-slate-200/50">
+              <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                <Pill className="w-5 h-5 mr-2 text-emerald-500" />
+                Write Prescription
+              </h3>
+              <form onSubmit={handleSavePrescription} className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 md:col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Consultation</span>
+                  <select
+                    value={prescriptionForm.consultationId}
+                    onChange={(event) => setPrescriptionForm((current) => ({ ...current, consultationId: event.target.value }))}
+                    className="w-full rounded-2xl bg-slate-50/80 px-5 py-4 font-bold text-slate-800 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-4 focus:ring-blue-600/10"
+                  >
+                    <option value="">Select consultation</option>
+                    {patient.patientProfile?.notes?.map((note) => (
+                      <option key={note.id} value={note.id}>
+                        {note.title || 'Consultation'} - {new Date(note.date || Date.now()).toLocaleDateString()}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <input
+                  value={prescriptionForm.diagnosis}
+                  onChange={(event) => setPrescriptionForm((current) => ({ ...current, diagnosis: event.target.value }))}
+                  placeholder="Diagnosis"
+                  className="rounded-2xl bg-slate-50/80 px-5 py-4 font-bold text-slate-800 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-4 focus:ring-blue-600/10 md:col-span-2"
+                />
+                
+                {/* Medicines Array */}
+                <div className="md:col-span-2 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Medications</span>
+                    <button
+                      type="button"
+                      onClick={() => setPrescriptionForm(curr => ({
+                        ...curr,
+                        medicines: [...curr.medicines, { medicine: '', dosage: '', duration: '', instructions: '' }]
+                      }))}
+                      className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition"
+                    >
+                      + Add Medicine
+                    </button>
+                  </div>
+                  
+                  {prescriptionForm.medicines.map((med, index) => (
+                    <div key={index} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 relative">
+                      {prescriptionForm.medicines.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setPrescriptionForm(curr => ({
+                            ...curr,
+                            medicines: curr.medicines.filter((_, i) => i !== index)
+                          }))}
+                          className="absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-full hover:bg-red-200 shadow-sm"
+                        >
+                          ✕
+                        </button>
+                      )}
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <input
+                          value={med.medicine}
+                          onChange={(e) => {
+                            const newMeds = [...prescriptionForm.medicines];
+                            newMeds[index].medicine = e.target.value;
+                            setPrescriptionForm(curr => ({ ...curr, medicines: newMeds }));
+                          }}
+                          placeholder="Medicine name"
+                          required
+                          className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          value={med.dosage}
+                          onChange={(e) => {
+                            const newMeds = [...prescriptionForm.medicines];
+                            newMeds[index].dosage = e.target.value;
+                            setPrescriptionForm(curr => ({ ...curr, medicines: newMeds }));
+                          }}
+                          placeholder="Dosage (e.g. 1 tab)"
+                          required
+                          className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          value={med.duration}
+                          onChange={(e) => {
+                            const newMeds = [...prescriptionForm.medicines];
+                            newMeds[index].duration = e.target.value;
+                            setPrescriptionForm(curr => ({ ...curr, medicines: newMeds }));
+                          }}
+                          placeholder="Duration (e.g. 5 days)"
+                          required
+                          className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          value={med.instructions}
+                          onChange={(e) => {
+                            const newMeds = [...prescriptionForm.medicines];
+                            newMeds[index].instructions = e.target.value;
+                            setPrescriptionForm(curr => ({ ...curr, medicines: newMeds }));
+                          }}
+                          placeholder="Instructions (e.g. after food)"
+                          className="w-full rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <textarea
+                  rows="3"
+                  value={prescriptionForm.notes}
+                  onChange={(event) => setPrescriptionForm((current) => ({ ...current, notes: event.target.value }))}
+                  placeholder="Advice and follow-up notes"
+                  className="resize-none rounded-2xl bg-slate-50/80 px-5 py-4 font-medium text-slate-700 outline-none ring-1 ring-slate-100 focus:bg-white focus:ring-4 focus:ring-blue-600/10 md:col-span-2"
+                />
+                <button
+                  disabled={savingPrescription}
+                  className="rounded-2xl bg-emerald-600 px-8 py-4 font-black text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 disabled:opacity-60 md:w-fit"
+                >
+                  {savingPrescription ? 'Saving...' : 'Save Prescription'}
                 </button>
               </form>
             </section>

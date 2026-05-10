@@ -30,6 +30,39 @@ const APPOINTMENT_TIME_SLOTS = [
   '04:30 PM',
 ];
 
+const parseMedicalIntake = (intake) => {
+  if (!intake || typeof intake !== 'object') {
+    return null;
+  }
+
+  const reportLinks = Array.isArray(intake.reportLinks)
+    ? intake.reportLinks.map((item) => String(item || '').trim()).filter(Boolean)
+    : String(intake.reportLinks || '')
+        .split('\n')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+  return {
+    symptoms: intake.symptoms?.trim?.() || null,
+    illnessDuration: intake.illnessDuration?.trim?.() || null,
+    allergies: intake.allergies?.trim?.() || null,
+    currentMedicines: intake.currentMedicines?.trim?.() || null,
+    pastMedicalHistory: {
+      diabetes: Boolean(intake.pastMedicalHistory?.diabetes),
+      bloodPressure: Boolean(intake.pastMedicalHistory?.bloodPressure),
+      asthma: Boolean(intake.pastMedicalHistory?.asthma),
+      heartDisease: Boolean(intake.pastMedicalHistory?.heartDisease),
+      kidneyDisease: Boolean(intake.pastMedicalHistory?.kidneyDisease),
+      liverDisease: Boolean(intake.pastMedicalHistory?.liverDisease),
+      other: intake.pastMedicalHistory?.other?.trim?.() || null,
+    },
+    pregnancyStatus: ['NOT_APPLICABLE', 'NO', 'PREGNANT', 'BREASTFEEDING', 'UNSURE'].includes(intake.pregnancyStatus)
+      ? intake.pregnancyStatus
+      : 'NOT_APPLICABLE',
+    reportLinks,
+  };
+};
+
 const toDoctorSummary = (doctor) => ({
   id: doctor._id.toString(),
   name: doctor.name,
@@ -42,6 +75,10 @@ const toPatientSummary = (patient) => ({
     id: patient._id.toString(),
     name: patient.name,
     email: patient.email,
+    age: patient.age || null,
+    gender: patient.gender || null,
+    dateOfBirth: patient.dateOfBirth || null,
+    phone: patient.phone || null,
   },
 });
 
@@ -49,7 +86,7 @@ const hydrateAppointment = async (appointment) => {
   const value = appointment.toObject ? appointment.toObject() : { ...appointment };
   const [doctor, patient] = await Promise.all([
     User.findById(value.doctorId).select('_id name email specialization').lean(),
-    User.findById(value.patientUserId).select('_id name email').lean(),
+    User.findById(value.patientUserId).select('_id name email age gender dateOfBirth phone').lean(),
   ]);
 
   return {
@@ -125,7 +162,7 @@ export const getAppointmentAvailability = async (req, res) => {
 
 export const createAppointment = async (req, res) => {
   try {
-    const { doctorId, date, time, reason, appointmentType } = req.body;
+    const { doctorId, date, time, reason, appointmentType, medicalIntake } = req.body;
 
     if (!doctorId || !date || !time) {
       return res.status(400).json({ error: 'Doctor, date, and time are required' });
@@ -167,6 +204,7 @@ export const createAppointment = async (req, res) => {
       time,
       appointmentType: appointmentType || 'CLINIC_VISIT',
       reason: reason?.trim() || null,
+      medicalIntake: parseMedicalIntake(medicalIntake),
       status: 'PENDING',
     });
 

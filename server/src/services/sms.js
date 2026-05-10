@@ -38,7 +38,7 @@ export const sendSms = async ({ to, body }) => {
 export const canSendWhatsApp = () =>
   Boolean(client && (process.env.TWILIO_WHATSAPP_NUMBER || fromPhone));
 
-export const sendWhatsApp = async ({ to, body }) => {
+export const sendWhatsApp = async ({ to, body, mediaUrl }) => {
   const normalizedTo = normalizePhoneNumber(to);
 
   if (!normalizedTo) {
@@ -54,9 +54,15 @@ export const sendWhatsApp = async ({ to, body }) => {
 
   const prefixedFrom = fromWhatsApp.startsWith('whatsapp:') ? fromWhatsApp : `whatsapp:${fromWhatsApp}`;
 
-  return client.messages.create({
+  const payload = {
     body,
     from: prefixedFrom,
     to: `whatsapp:${normalizedTo}`,
-  });
+  };
+
+  if (mediaUrl) {
+    payload.mediaUrl = [mediaUrl];
+  }
+
+  return client.messages.create(payload);
 };

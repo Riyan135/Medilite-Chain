@@ -67,6 +67,34 @@ export const getPatientDetailsForDoctor = async (req, res) => {
   }
 };
 
+export const updateDoctorSignature = async (req, res) => {
+  try {
+    if (req.user.role !== 'DOCTOR' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only doctors can update prescription signature details' });
+    }
+
+    const doctor = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        medicalLicenseNumber: req.body.medicalLicenseNumber?.trim?.() || null,
+        digitalSignatureUrl: req.body.digitalSignatureUrl?.trim?.() || null,
+        digitalSignatureName: req.body.digitalSignatureName?.trim?.() || req.user.name,
+      },
+      { new: true, runValidators: true }
+    )
+      .select('_id name email role specialization medicalLicenseNumber digitalSignatureUrl digitalSignatureName')
+      .lean();
+
+    res.json({
+      ...doctor,
+      id: doctor._id.toString(),
+    });
+  } catch (error) {
+    console.error('Error updating doctor signature:', error);
+    res.status(500).json({ error: 'Failed to update doctor signature' });
+  }
+};
+
 export const addDoctorNote = async (req, res) => {
   const { patientProfileId, content, title } = req.body;
   const doctorId = req.user.id;

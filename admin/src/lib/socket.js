@@ -21,7 +21,9 @@ export const getSocket = () => {
   if (!socket) {
     socket = io(socketUrl, {
       autoConnect: false,
-      transports: ['websocket', 'polling'],
+      transports: ['polling'],
+      upgrade: false,
+      rememberUpgrade: false,
     });
   }
 
@@ -31,4 +33,3 @@ export const getSocket = () => {
 
   return socket;
 };
-

@@ -2,6 +2,12 @@ import Appointment from '../models/Appointment.js';
 import Consultation from '../models/Consultation.js';
 import User from '../models/User.js';
 import { reconcilePrescriptionStock } from '../services/medicineStock.js';
+import { buildPrescriptionPdf } from '../services/prescriptionPdf.js';
+import { sendWhatsApp } from '../services/sms.js';
+import { sendPrescriptionReadyEmail } from '../services/mailer.js';
+
+const createShareToken = () =>
+  `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
 
 const toUserSummary = (user) =>
   user
@@ -10,15 +16,21 @@ const toUserSummary = (user) =>
         name: user.name,
         email: user.email,
         phone: user.phone,
+        age: user.age || null,
+        gender: user.gender || null,
+        dateOfBirth: user.dateOfBirth || null,
         specialization: user.specialization || null,
+        medicalLicenseNumber: user.medicalLicenseNumber || null,
+        digitalSignatureUrl: user.digitalSignatureUrl || null,
+        digitalSignatureName: user.digitalSignatureName || null,
       }
     : null;
 
 const hydrateConsultation = async (consultation) => {
   const value = consultation.toObject ? consultation.toObject() : { ...consultation };
   const [patient, doctor, appointment] = await Promise.all([
-    User.findById(value.patientId).select('_id name email phone').lean(),
-    User.findById(value.doctorId).select('_id name email phone specialization').lean(),
+    User.findById(value.patientId).select('_id name email phone age gender dateOfBirth').lean(),
+    User.findById(value.doctorId).select('_id name email phone specialization medicalLicenseNumber digitalSignatureUrl digitalSignatureName').lean(),
     value.appointmentId ? Appointment.findById(value.appointmentId).lean() : null,
   ]);
 
@@ -71,6 +83,8 @@ export const createConsultationFromAppointment = async (appointment) => {
     scheduledDate: appointment.date,
     scheduledTime: appointment.time,
     notes: appointment.reason || null,
+    symptoms: appointment.medicalIntake?.symptoms || appointment.reason || null,
+    medicalIntake: appointment.medicalIntake || null,
   });
 };
 
@@ -164,6 +178,60 @@ export const getConsultationById = async (req, res) => {
   }
 };
 
+const sendPrescriptionPdfResponse = async (res, consultation) => {
+  const hydrated = await hydrateConsultation(consultation);
+  const pdf = buildPrescriptionPdf(hydrated);
+  const patientName = hydrated.patient?.name || 'patient';
+  const fileName = `MediLite-Prescription-${patientName.replace(/[^a-z0-9]+/gi, '-')}.pdf`;
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.setHeader('Content-Length', pdf.length);
+  res.send(pdf);
+};
+
+export const downloadPrescriptionPdf = async (req, res) => {
+  try {
+    const consultation = await Consultation.findById(req.params.id).lean();
+
+    if (!consultation) {
+      return res.status(404).json({ error: 'Consultation not found' });
+    }
+
+    const canAccess =
+      req.user.role === 'ADMIN' ||
+      consultation.doctorId === req.user.id ||
+      consultation.patientId === req.user.id;
+
+    if (!canAccess) {
+      return res.status(403).json({ error: 'Not allowed to download this prescription' });
+    }
+
+    return sendPrescriptionPdfResponse(res, consultation);
+  } catch (error) {
+    console.error('Error downloading prescription PDF:', error);
+    res.status(500).json({ error: 'Failed to download prescription PDF' });
+  }
+};
+
+export const downloadSharedPrescriptionPdf = async (req, res) => {
+  try {
+    const consultation = await Consultation.findOne({
+      _id: req.params.id,
+      prescriptionShareToken: req.params.token,
+    }).lean();
+
+    if (!consultation) {
+      return res.status(404).json({ error: 'Prescription link is invalid or expired' });
+    }
+
+    return sendPrescriptionPdfResponse(res, consultation);
+  } catch (error) {
+    console.error('Error downloading shared prescription PDF:', error);
+    res.status(500).json({ error: 'Failed to download prescription PDF' });
+  }
+};
+
 export const updateConsultation = async (req, res) => {
   try {
     const consultation = await Consultation.findById(req.params.id);
@@ -233,11 +301,19 @@ export const addPrescription = async (req, res) => {
 
     const previousPrescription = consultation.prescription || [];
     consultation.prescription = parsePrescription(req.body.prescription);
+    if (!consultation.prescriptionShareToken) {
+      consultation.prescriptionShareToken = createShareToken();
+    }
     if (req.body.diagnosis !== undefined) {
       consultation.diagnosis = req.body.diagnosis?.trim() || null;
     }
     if (req.body.notes !== undefined) {
       consultation.notes = req.body.notes?.trim() || null;
+    }
+    consultation.status = 'COMPLETED';
+    consultation.completedAt = new Date();
+    if (!consultation.startedAt) {
+      consultation.startedAt = new Date();
     }
     await consultation.save();
     await reconcilePrescriptionStock({
@@ -247,7 +323,36 @@ export const addPrescription = async (req, res) => {
       actorUserId: req.user.id,
     });
 
-    res.json(await hydrateConsultation(consultation));
+    const hydratedConsultation = await hydrateConsultation(consultation);
+    const publicServerUrl = process.env.PUBLIC_SERVER_URL || `http://localhost:${process.env.PORT || 5000}`;
+    const prescriptionUrl = `${publicServerUrl.replace(/\/$/, '')}/api/public/consultations/${consultation._id}/prescription/${consultation.prescriptionShareToken}.pdf`;
+
+    sendWhatsApp({
+      to: hydratedConsultation.patient?.phone,
+      body: `MediLite: Your prescription from Dr. ${hydratedConsultation.doctor?.name || 'Doctor'} is ready. Download PDF: ${prescriptionUrl}`,
+      mediaUrl: prescriptionUrl,
+    }).catch((error) => {
+      console.error('Failed to send prescription WhatsApp:', error.message);
+    });
+
+    sendPrescriptionReadyEmail({
+      to: hydratedConsultation.patient?.email,
+      patientName: hydratedConsultation.patient?.name,
+      doctorName: hydratedConsultation.doctor?.name,
+      prescriptionUrl,
+    }).catch((error) => {
+      console.error('Failed to send prescription email:', error.message);
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(consultation.patientId).emit('prescription_ready', hydratedConsultation);
+    }
+
+    res.json({
+      ...hydratedConsultation,
+      prescriptionUrl,
+    });
   } catch (error) {
     console.error('Error adding prescription:', error);
     res.status(500).json({ error: 'Failed to add prescription' });

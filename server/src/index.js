@@ -20,6 +20,7 @@ import emergencyRoutes from './routes/emergency.js';
 import familyRoutes from './routes/family.js';
 import appointmentRoutes from './routes/appointment.js';
 import consultationRoutes from './routes/consultations.js';
+import publicConsultationRoutes from './routes/publicConsultations.js';
 import medicineRoutes from './routes/medicines.js';
 import stockRoutes from './routes/stock.js';
 import { authMiddleware } from './middleware/authMiddleware.js';
@@ -160,6 +161,7 @@ app.use(async (req, res, next) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/symptoms', symptomRoutes);
+app.use('/api/public/consultations', publicConsultationRoutes);
 
 app.use(authMiddleware);
 app.use('/api/records', recordRoutes);

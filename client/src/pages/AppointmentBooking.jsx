@@ -13,6 +13,7 @@ import {
   MessageCircle,
   Siren,
   Video,
+  UploadCloud,
 } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -74,6 +75,24 @@ const AppointmentBooking = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [reason, setReason] = useState('');
+  const [medicalIntake, setMedicalIntake] = useState({
+    symptoms: '',
+    illnessDuration: '',
+    allergies: '',
+    currentMedicines: '',
+    pastMedicalHistory: {
+      diabetes: false,
+      bloodPressure: false,
+      asthma: false,
+      heartDisease: false,
+      kidneyDisease: false,
+      liverDisease: false,
+      other: '',
+    },
+    pregnancyStatus: 'NOT_APPLICABLE',
+    reportLinks: '',
+  });
+  const [intakeFiles, setIntakeFiles] = useState([]);
   const [showTimeSlots, setShowTimeSlots] = useState(false);
   const [availabilityByDate, setAvailabilityByDate] = useState({});
   const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -202,19 +221,70 @@ const AppointmentBooking = () => {
 
   const handleBook = async (e) => {
     e.preventDefault();
-    if (!selectedDoctor || !date || !time) {
-      return toast.error("Please fill in all required fields");
+    const autoSelectedTime = selectedDateAvailability?.availableSlots?.[0] || '';
+    const bookingTime = time || autoSelectedTime;
+
+    if (!selectedDoctor) {
+      return toast.error('Please select a doctor');
+    }
+
+    if (!date) {
+      return toast.error('Please select an appointment date');
+    }
+
+    if (!bookingTime) {
+      setShowTimeSlots(true);
+      return toast.error('Please select an available time slot');
+    }
+
+    if (!time && bookingTime) {
+      setTime(bookingTime);
+      toast.success(`Using first available slot: ${bookingTime}`);
     }
 
     setStatus('booking');
 
     try {
+      let uploadedReportLinks = [];
+
+      if (appointmentType === 'VIDEO_CALL' && intakeFiles.length > 0) {
+        uploadedReportLinks = await Promise.all(
+          intakeFiles.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('title', file.name);
+            formData.append('type', file.type === 'application/pdf' ? 'REPORT' : 'REPORT');
+            formData.append('description', 'Uploaded during video appointment medical intake');
+            if (selectedDoctor) {
+              formData.append('doctorId', selectedDoctor);
+            }
+
+            const uploadResponse = await api.post('/records/upload', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+
+            return uploadResponse.data.fileUrl;
+          })
+        );
+      }
+
+      const manualReportLinks = medicalIntake.reportLinks
+        .split('\n')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
       const res = await api.post('/appointments/book', {
         doctorId: selectedDoctor,
         date,
-        time,
+        time: bookingTime,
         appointmentType,
-        reason
+        reason,
+        medicalIntake: appointmentType === 'VIDEO_CALL'
+          ? {
+              ...medicalIntake,
+              reportLinks: [...manualReportLinks, ...uploadedReportLinks],
+            }
+          : null,
       });
 
       const appointment = res.data;
@@ -235,6 +305,24 @@ const AppointmentBooking = () => {
     setDate('');
     setTime('');
     setReason('');
+    setMedicalIntake({
+      symptoms: '',
+      illnessDuration: '',
+      allergies: '',
+      currentMedicines: '',
+      pastMedicalHistory: {
+        diabetes: false,
+        bloodPressure: false,
+        asthma: false,
+        heartDisease: false,
+        kidneyDisease: false,
+        liverDisease: false,
+        other: '',
+      },
+      pregnancyStatus: 'NOT_APPLICABLE',
+      reportLinks: '',
+    });
+    setIntakeFiles([]);
     setShowTimeSlots(false);
     setAvailabilityByDate({});
     setCurrentAppointment(null);
@@ -577,6 +665,149 @@ rounded-2xl shadow-lg shadow-rose-600/30 transition-all hover:-translate-y-1"
               ></textarea>
             </div>
           </div>
+
+          {appointmentType === 'VIDEO_CALL' && (
+            <div className="space-y-5 rounded-[1.75rem] border border-blue-100 bg-blue-50/50 p-5">
+              <div>
+                <p className="text-xs font-black uppercase tracking-wider text-blue-600">Medical Intake Before Call</p>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  These details help the doctor prepare before joining the video consultation.
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 md:col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Symptoms</span>
+                  <textarea
+                    rows="3"
+                    value={medicalIntake.symptoms}
+                    onChange={(event) => setMedicalIntake((current) => ({ ...current, symptoms: event.target.value }))}
+                    placeholder="Fever, cough, headache, stomach pain..."
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-4 font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Duration of Illness</span>
+                  <input
+                    value={medicalIntake.illnessDuration}
+                    onChange={(event) => setMedicalIntake((current) => ({ ...current, illnessDuration: event.target.value }))}
+                    placeholder="Example: 3 days"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Allergies</span>
+                  <input
+                    value={medicalIntake.allergies}
+                    onChange={(event) => setMedicalIntake((current) => ({ ...current, allergies: event.target.value }))}
+                    placeholder="Medicine or food allergies"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
+                </label>
+
+                <label className="space-y-2 md:col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Current Medicines</span>
+                  <textarea
+                    rows="2"
+                    value={medicalIntake.currentMedicines}
+                    onChange={(event) => setMedicalIntake((current) => ({ ...current, currentMedicines: event.target.value }))}
+                    placeholder="Medicine name, dose, and frequency"
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-4 font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                  />
+                </label>
+              </div>
+
+              <div className="space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Past Medical History</span>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {[
+                    ['diabetes', 'Diabetes'],
+                    ['bloodPressure', 'BP'],
+                    ['asthma', 'Asthma'],
+                    ['heartDisease', 'Heart disease'],
+                    ['kidneyDisease', 'Kidney disease'],
+                    ['liverDisease', 'Liver disease'],
+                  ].map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={medicalIntake.pastMedicalHistory[key]}
+                        onChange={(event) =>
+                          setMedicalIntake((current) => ({
+                            ...current,
+                            pastMedicalHistory: {
+                              ...current.pastMedicalHistory,
+                              [key]: event.target.checked,
+                            },
+                          }))
+                        }
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <input
+                  value={medicalIntake.pastMedicalHistory.other}
+                  onChange={(event) =>
+                    setMedicalIntake((current) => ({
+                      ...current,
+                      pastMedicalHistory: { ...current.pastMedicalHistory, other: event.target.value },
+                    }))
+                  }
+                  placeholder="Other past medical history"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                />
+              </div>
+
+              <label className="space-y-2 block">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Pregnancy / Breastfeeding Status</span>
+                <select
+                  value={medicalIntake.pregnancyStatus}
+                  onChange={(event) => setMedicalIntake((current) => ({ ...current, pregnancyStatus: event.target.value }))}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                >
+                  <option value="NOT_APPLICABLE">Not applicable</option>
+                  <option value="NO">No</option>
+                  <option value="PREGNANT">Pregnant</option>
+                  <option value="BREASTFEEDING">Breastfeeding</option>
+                  <option value="UNSURE">Unsure</option>
+                </select>
+              </label>
+
+              <label className="space-y-2 block">
+                <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <UploadCloud className="h-4 w-4" />
+                  Previous Prescriptions and Lab Reports Upload
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png,.txt"
+                  onChange={(event) => setIntakeFiles(Array.from(event.target.files || []))}
+                  className="w-full rounded-2xl border border-dashed border-blue-200 bg-white px-4 py-4 text-sm font-bold text-slate-600 outline-none file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-black file:text-white hover:border-blue-300"
+                />
+                {intakeFiles.length > 0 && (
+                  <div className="space-y-2 rounded-2xl border border-blue-100 bg-white p-3">
+                    {intakeFiles.map((file) => (
+                      <p key={`${file.name}-${file.size}`} className="text-xs font-bold text-slate-600">
+                        {file.name}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                <textarea
+                  rows="2"
+                  value={medicalIntake.reportLinks}
+                  onChange={(event) => setMedicalIntake((current) => ({ ...current, reportLinks: event.target.value }))}
+                  placeholder="Optional: paste existing report links, one per line"
+                  className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-4 font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                />
+              </label>
+            </div>
+          )}
 
           {/* Submit */}
           <button

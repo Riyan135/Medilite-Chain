@@ -206,12 +206,14 @@ const Consultations = () => {
       };
 
       socket.on('consultation_created', handleConsultationCreated);
+      socket.on('prescription_ready', fetchData);
 
       fetchData();
       fetchDoctors();
 
       return () => {
         socket.off('consultation_created', handleConsultationCreated);
+        socket.off('prescription_ready', fetchData);
       };
     }
 
@@ -268,6 +270,15 @@ const Consultations = () => {
       console.error('Error creating consultation:', error);
       toast.error('Failed to create consultation');
       setCreating(false);
+    }
+  };
+
+  const handleDownloadPrescription = async (consultation) => {
+    try {
+      await downloadPrescriptionPdf(consultation);
+    } catch (error) {
+      console.error('Error downloading prescription:', error);
+      toast.error('Unable to download prescription PDF');
     }
   };
 
@@ -395,6 +406,15 @@ const Consultations = () => {
                           </div>
                         </div>
                         <div className="flex flex-col gap-3 min-w-[140px]">
+                          {consultation.prescription?.length > 0 && (
+                            <button
+                              onClick={() => handleDownloadPrescription(consultation)}
+                              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black transition-colors"
+                            >
+                              <Download className="w-5 h-5" />
+                              Prescription
+                            </button>
+                          )}
                           <button
                             onClick={() =>
                               setActiveChat({
@@ -467,7 +487,7 @@ const Consultations = () => {
                           </button>
                           {consultation.prescription?.length > 0 && (
                             <button
-                              onClick={() => downloadPrescriptionPdf(consultation)}
+                              onClick={() => handleDownloadPrescription(consultation)}
                               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold transition-colors"
                             >
                               <Download className="w-4 h-4" />

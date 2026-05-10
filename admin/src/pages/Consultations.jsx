@@ -20,6 +20,20 @@ const typeLabels = {
   IN_PERSON: 'In Person',
 };
 
+const historyLabels = {
+  diabetes: 'Diabetes',
+  bloodPressure: 'BP',
+  asthma: 'Asthma',
+  heartDisease: 'Heart',
+  kidneyDisease: 'Kidney',
+  liverDisease: 'Liver',
+};
+
+const getMedicalHistoryItems = (history = {}) =>
+  Object.entries(historyLabels)
+    .filter(([key]) => history?.[key])
+    .map(([, label]) => label);
+
 const Consultations = () => {
   const navigate = useNavigate();
   const [consultations, setConsultations] = useState([]);
@@ -153,6 +167,26 @@ const Consultations = () => {
                   <Info label="Symptoms" value={consultation.symptoms || consultation.notes || 'No symptoms added'} />
                   <Info label="Diagnosis" value={consultation.diagnosis || 'Not added yet'} />
                 </div>
+
+                {consultation.medicalIntake && (
+                  <div className="mt-5 rounded-3xl border border-blue-100 bg-blue-50/70 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-blue-600">Medical Intake Before Call</p>
+                    <div className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+                      <Info label="Duration" value={consultation.medicalIntake.illnessDuration || 'Not added'} />
+                      <Info label="Allergies" value={consultation.medicalIntake.allergies || 'None reported'} />
+                      <Info label="Current Medicines" value={consultation.medicalIntake.currentMedicines || 'None reported'} />
+                      <Info
+                        label="Past History"
+                        value={[
+                          ...getMedicalHistoryItems(consultation.medicalIntake.pastMedicalHistory),
+                          consultation.medicalIntake.pastMedicalHistory?.other,
+                        ].filter(Boolean).join(', ') || 'No history reported'}
+                      />
+                      <Info label="Pregnancy/Breastfeeding" value={consultation.medicalIntake.pregnancyStatus?.replace('_', ' ') || 'Not applicable'} />
+                      <Info label="Reports" value={`${consultation.medicalIntake.reportLinks?.length || 0} link(s)`} />
+                    </div>
+                  </div>
+                )}
               </button>
             ))}
           </div>
