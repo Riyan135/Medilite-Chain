@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Calendar,
   Clock,
@@ -69,6 +70,8 @@ const appointmentTypes = [
 
 const AppointmentBooking = () => {
   const { user } = useAuth();
+  const { memberId } = useParams();
+  const [patientName, setPatientName] = useState(user?.name || '');
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [appointmentType, setAppointmentType] = useState('CLINIC_VISIT');
@@ -111,6 +114,17 @@ const AppointmentBooking = () => {
   );
 
   useEffect(() => {
+    if (memberId) {
+      api.get('/family').then(res => {
+        const member = res.data.find(m => m.id === memberId);
+        if (member) setPatientName(member.name);
+      }).catch(console.error);
+    } else {
+      setPatientName(user?.name || '');
+    }
+  }, [memberId, user?.name]);
+
+  useEffect(() => {
     fetchDoctors();
     
     const handleStatusChanged = (e) => {
@@ -133,20 +147,18 @@ const AppointmentBooking = () => {
 
   useEffect(() => {
     if (status !== 'waiting' || !currentAppointment?.id) {
-      return undefined;
+      return;
     }
 
     const intervalId = window.setInterval(async () => {
       try {
         const response = await api.get(`/appointments/${currentAppointment.id}`);
-        const latestAppointment = response.data;
-
-        if (latestAppointment.status === 'ACCEPTED') {
-          setCurrentAppointment(latestAppointment);
+        const appointmentData = response.data;
+        if (appointmentData.status === 'ACCEPTED') {
+          setCurrentAppointment(appointmentData);
           setStatus('success');
-          toast.success('Your appointment is booked on the selected time and date.');
-        } else if (latestAppointment.status === 'REJECTED') {
-          setCurrentAppointment(latestAppointment);
+        } else if (appointmentData.status === 'REJECTED') {
+          setCurrentAppointment(appointmentData);
           setStatus('rejected');
           toast.error('Your appointment was rejected. Please select a different time slot or date.');
         }
@@ -154,7 +166,6 @@ const AppointmentBooking = () => {
         console.error('Error checking appointment status:', error);
       }
     }, 3000);
-
     return () => {
       window.clearInterval(intervalId);
     };
@@ -255,6 +266,10 @@ const AppointmentBooking = () => {
             formData.append('title', file.name);
             formData.append('type', file.type === 'application/pdf' ? 'REPORT' : 'REPORT');
             formData.append('description', 'Uploaded during video appointment medical intake');
+            const targetPatientId = memberId || user?.id;
+            if (targetPatientId) {
+              formData.append('patientId', targetPatientId);
+            }
             if (selectedDoctor) {
               formData.append('doctorId', selectedDoctor);
             }
@@ -275,6 +290,7 @@ const AppointmentBooking = () => {
 
       const res = await api.post('/appointments/book', {
         doctorId: selectedDoctor,
+        patientId: memberId || user?.id,
         date,
         time: bookingTime,
         appointmentType,
@@ -458,14 +474,13 @@ rounded-2xl shadow-lg shadow-rose-600/30 transition-all hover:-translate-y-1"
               </div>
               <input
                 type="text"
-                value={user?.name || ''}
+                value={patientName}
                 readOnly
                 className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Connect Doctor */}
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Select Specialist</label>
             <div className="relative">

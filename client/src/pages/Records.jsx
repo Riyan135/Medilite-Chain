@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { FileText, Search, Filter, Download, ExternalLink, Trash2, BrainCircuit, QrCode, X, Globe, AlertCircle, Share2, Sparkles, Languages, ShieldCheck, Plus, ChevronDown, FlaskConical, Stethoscope, Receipt } from 'lucide-react';
 import api from '../api/api';
@@ -20,6 +21,10 @@ const languageOptions = [
 
 const Records = () => {
   const { user } = useAuth();
+  const { memberId } = useParams();
+  const patientId = memberId || user?.id;
+  const [patientName, setPatientName] = useState(user?.name || '');
+
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,16 +44,24 @@ const Records = () => {
   const [showUploadMenu, setShowUploadMenu] = useState(false);
   const [showStickyLangMenu, setShowStickyLangMenu] = useState(false);
 
-
   useEffect(() => {
-    if (user?.id) {
+    if (patientId) {
       fetchRecords();
+
+      if (memberId) {
+        api.get('/family').then(res => {
+          const member = res.data.find(m => m.id === memberId);
+          if (member) setPatientName(member.name);
+        }).catch(console.error);
+      } else {
+        setPatientName(user?.name || '');
+      }
     }
-  }, [user?.id]);
+  }, [patientId, memberId, user?.name]);
 
   const fetchRecords = async () => {
     try {
-      const response = await api.get(`/records/patient/${user.id}`);
+      const response = await api.get(`/records/patient/${patientId}`);
       setRecords(response.data);
     } catch (error) {
       console.error('Error fetching records:', error);
@@ -93,7 +106,7 @@ const Records = () => {
     }
     setGeneratingOverview(true);
     try {
-      const response = await api.post('/records/health-overview', { language: selectedLanguage });
+      const response = await api.post('/records/health-overview', { language: selectedLanguage, patientId });
       setHealthOverview(response.data);
       setShowOverviewModal(true);
       toast.success('Holistic health analysis complete!');
@@ -710,7 +723,7 @@ const Records = () => {
       )}
       {showUploadModal && (
         <MedicalRecordUpload
-          targetId={user.id}
+          targetId={patientId}
           initialType={uploadType}
           onClose={() => {
             setShowUploadModal(false);

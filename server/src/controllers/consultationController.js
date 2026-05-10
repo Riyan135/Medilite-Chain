@@ -90,15 +90,25 @@ export const createConsultationFromAppointment = async (appointment) => {
 
 export const createConsultation = async (req, res) => {
   try {
-    const patientId = req.user.role === 'PATIENT' ? req.user.id : req.body.patientId;
-    const { doctorId, symptoms, notes, consultationType, scheduledDate, scheduledTime } = req.body;
+    const { doctorId, symptoms, notes, consultationType, scheduledDate, scheduledTime, patientId } = req.body;
+    let finalPatientId = patientId;
 
-    if (!patientId || !doctorId) {
+    if (req.user.role === 'PATIENT') {
+      finalPatientId = patientId || req.user.id;
+      if (finalPatientId !== req.user.id) {
+        const isFamilyMember = await User.exists({ _id: finalPatientId, parentId: req.user.id });
+        if (!isFamilyMember) {
+          return res.status(403).json({ error: 'Unauthorized to create consultation for this patient' });
+        }
+      }
+    }
+
+    if (!finalPatientId || !doctorId) {
       return res.status(400).json({ error: 'Patient and doctor are required' });
     }
 
     const [patient, doctor] = await Promise.all([
-      User.findById(patientId).lean(),
+      User.findById(finalPatientId).lean(),
       User.findById(doctorId).lean(),
     ]);
 
@@ -111,7 +121,7 @@ export const createConsultation = async (req, res) => {
     }
 
     const consultation = await Consultation.create({
-      patientId,
+      patientId: finalPatientId,
       doctorId,
       symptoms: symptoms?.trim() || null,
       notes: notes?.trim() || null,
@@ -137,13 +147,21 @@ export const createConsultation = async (req, res) => {
 export const getConsultations = async (req, res) => {
   try {
     const query = {};
+    const requestedPatientId = req.query.patientId;
 
     if (req.user.role === 'DOCTOR') {
       query.doctorId = req.user.id;
     } else if (req.user.role === 'PATIENT') {
-      query.patientId = req.user.id;
+      const targetId = requestedPatientId || req.user.id;
+      if (targetId !== req.user.id) {
+        const isFamilyMember = await User.exists({ _id: targetId, parentId: req.user.id });
+        if (!isFamilyMember) {
+          return res.status(403).json({ error: 'Unauthorized to view consultations for this patient' });
+        }
+      }
+      query.patientId = targetId;
     } else if (req.user.role === 'ADMIN' && req.headers['x-app-type'] !== 'admin') {
-      query.patientId = req.user.id;
+      query.patientId = requestedPatientId || req.user.id;
     }
 
     const consultations = await Consultation.find(query).sort({ createdAt: -1 }).lean();
@@ -362,10 +380,19 @@ export const addPrescription = async (req, res) => {
 export const getConsultationStats = async (req, res) => {
   try {
     const query = {};
+    const requestedPatientId = req.query.patientId;
+
     if (req.user.role === 'DOCTOR') {
       query.doctorId = req.user.id;
     } else if (req.user.role === 'PATIENT') {
-      query.patientId = req.user.id;
+      const targetId = requestedPatientId || req.user.id;
+      if (targetId !== req.user.id) {
+        const isFamilyMember = await User.exists({ _id: targetId, parentId: req.user.id });
+        if (!isFamilyMember) {
+          return res.status(403).json({ error: 'Unauthorized to view consultation stats for this patient' });
+        }
+      }
+      query.patientId = targetId;
     }
 
     const [total, pending, ongoing, completed] = await Promise.all([

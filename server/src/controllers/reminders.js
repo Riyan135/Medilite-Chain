@@ -21,13 +21,20 @@ const syncActiveReminderCount = async (patientUserId) => {
 };
 
 export const createReminder = async (req, res) => {
-  const { medicineName, dosage, frequency, time, startDate, endDate } = req.body;
-  const userId = req.user.id;
+  const { medicineName, dosage, frequency, time, startDate, endDate, patientId } = req.body;
+  const targetUserId = patientId || req.user.id;
 
   try {
+    if (targetUserId !== req.user.id) {
+      const isFamilyMember = await User.exists({ _id: targetUserId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to add reminders for this patient' });
+      }
+    }
+
     const [user, patientProfile] = await Promise.all([
-      User.findById(userId).lean(),
-      PatientProfile.findOne({ userId }).lean(),
+      User.findById(targetUserId).lean(),
+      PatientProfile.findOne({ userId: targetUserId }).lean(),
     ]);
 
     if (!user || !patientProfile) {
@@ -35,7 +42,7 @@ export const createReminder = async (req, res) => {
     }
 
     const reminder = await MedicineReminder.create({
-      patientUserId: userId,
+      patientUserId: targetUserId,
       medicineName,
       dosage,
       frequency,
@@ -45,7 +52,7 @@ export const createReminder = async (req, res) => {
       isActive: true,
     });
 
-    await syncActiveReminderCount(userId);
+    await syncActiveReminderCount(targetUserId);
 
     if (user.email) {
       await sendReminderEmail({
@@ -72,6 +79,13 @@ export const getReminders = async (req, res) => {
   const userId = req.params.id || req.user.id;
 
   try {
+    if (userId !== req.user.id) {
+      const isFamilyMember = await User.exists({ _id: userId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to view reminders for this patient' });
+      }
+    }
+
     const [user, reminders] = await Promise.all([
       User.findById(userId).lean(),
       MedicineReminder.find({ patientUserId: userId }).sort({ createdAt: -1 }).lean(),
@@ -92,10 +106,20 @@ export const deleteReminder = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const reminder = await MedicineReminder.findByIdAndDelete(id).lean();
+    const reminder = await MedicineReminder.findById(id);
+
     if (!reminder) {
       return res.status(404).json({ error: 'Reminder not found' });
     }
+
+    if (reminder.patientUserId !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: reminder.patientUserId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to delete this reminder' });
+      }
+    }
+
+    await MedicineReminder.findByIdAndDelete(id);
 
     await syncActiveReminderCount(reminder.patientUserId);
     res.status(200).json({ message: 'Reminder deleted' });
@@ -110,15 +134,24 @@ export const toggleReminder = async (req, res) => {
   const { isActive } = req.body;
 
   try {
+    const reminder = await MedicineReminder.findById(id);
+
+    if (!reminder) {
+      return res.status(404).json({ error: 'Reminder not found' });
+    }
+
+    if (reminder.patientUserId !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: reminder.patientUserId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to toggle this reminder' });
+      }
+    }
+
     const updated = await MedicineReminder.findByIdAndUpdate(
       id,
       { $set: { isActive } },
       { new: true }
     ).lean();
-
-    if (!updated) {
-      return res.status(404).json({ error: 'Reminder not found' });
-    }
 
     await syncActiveReminderCount(updated.patientUserId);
     res.status(200).json(toReminderResponse(updated));

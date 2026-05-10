@@ -29,6 +29,12 @@ export const uploadRecord = async (req, res) => {
   }
 
   try {
+    if (patientId !== req.user.id) {
+      const isFamilyMember = await User.exists({ _id: patientId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to upload records for this patient' });
+      }
+    }
     const patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
 
     if (!patientProfile) {
@@ -56,6 +62,13 @@ export const getPatientRecords = async (req, res) => {
   const patientId = req.params.patientId || req.user.id;
 
   try {
+    if (patientId !== req.user.id) {
+      const isFamilyMember = await User.exists({ _id: patientId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to view records for this patient' });
+      }
+    }
+
     const patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
 
     if (!patientProfile) {
@@ -135,11 +148,18 @@ export const generateRecordQR = async (req, res) => {
 };
 
 export const getHealthOverview = async (req, res) => {
-  const userId = req.user.id;
-  const { language } = req.body;
+  const { language, patientId } = req.body;
+  const targetUserId = patientId || req.user.id;
 
   try {
-    const records = await MedicalRecord.find({ patientUserId: userId }).lean();
+    if (targetUserId !== req.user.id) {
+      const isFamilyMember = await User.exists({ _id: targetUserId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to generate overview for this patient' });
+      }
+    }
+
+    const records = await MedicalRecord.find({ patientUserId: targetUserId }).lean();
 
     if (records.length === 0) {
       return res.status(400).json({ error: 'No medical records found to summarize.' });

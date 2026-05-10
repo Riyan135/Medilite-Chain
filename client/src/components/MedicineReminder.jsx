@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Bell, Plus, Clock, Trash2, X, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -7,6 +8,9 @@ import { useAuth } from '../context/AuthContext';
 
 const MedicineReminder = () => {
   const { user } = useAuth();
+  const { memberId } = useParams();
+  const patientId = memberId || user?.id;
+  
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -21,10 +25,10 @@ const MedicineReminder = () => {
   });
 
   useEffect(() => {
-    if (user?.id) {
+    if (patientId) {
       fetchReminders();
     }
-  }, [user?.id]);
+  }, [patientId]);
 
   const handleVoiceCommand = (field) => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -77,7 +81,7 @@ const MedicineReminder = () => {
 
   const fetchReminders = async () => {
     try {
-      const response = await api.get(`/reminders/${user.id}`);
+      const response = await api.get(`/reminders/${patientId}`);
       setReminders(response.data);
     } catch (error) {
       console.error('Error fetching reminders:', error);
@@ -91,7 +95,7 @@ const MedicineReminder = () => {
     try {
       await api.post('/reminders', {
         ...formData,
-        clerkId: user.id,
+        patientId,
       });
       setShowAddForm(false);
       fetchReminders();
@@ -294,7 +298,7 @@ const MedicineReminder = () => {
                 key={reminder.id}
                 className="group relative overflow-hidden rounded-[1.75rem] border border-white/60 bg-white/75 p-6 shadow-lg shadow-slate-200/40 backdrop-blur transition-all duration-500 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-sky-100/50"
               >
-                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-sky-100/50 via-blue-100/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-r from-sky-100/50 via-blue-100/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                 <div className={`absolute bottom-0 left-0 top-0 w-1 ${reminder.isActive ? 'bg-primary' : 'bg-slate-300'}`} />
 
                 <div className="mb-6 flex items-start justify-between">
@@ -303,7 +307,7 @@ const MedicineReminder = () => {
                   </div>
                   <button
                     onClick={() => handleDelete(reminder.id)}
-                    className="rounded-xl p-2 text-red-500 opacity-0 transition-all duration-300 hover:bg-red-50 group-hover:opacity-100"
+                    className="relative z-10 rounded-xl p-2 text-red-500 transition-all duration-300 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

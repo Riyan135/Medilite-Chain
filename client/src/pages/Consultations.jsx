@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Calendar,
   CheckCircle2,
@@ -176,6 +177,9 @@ const CreateConsultationModal = ({ doctors, creating, onClose, onSubmit }) => {
 
 const Consultations = () => {
   const { user } = useAuth();
+  const { memberId } = useParams();
+  const patientId = memberId || user?.id;
+
   const [consultations, setConsultations] = useState([]);
   const [stats, setStats] = useState({ total: 0, pending: 0, ongoing: 0, completed: 0 });
   const [doctors, setDoctors] = useState([]);
@@ -195,9 +199,9 @@ const Consultations = () => {
   useEffect(() => {
     let socket;
 
-    if (user?.id) {
+    if (patientId) {
       socket = getSocket();
-      socket.emit('join_room', { room: user.id });
+      socket.emit('join_room', { room: patientId });
 
       const handleConsultationCreated = (consultation) => {
         setConsultations((current) => [consultation, ...current]);
@@ -218,13 +222,13 @@ const Consultations = () => {
     }
 
     return undefined;
-  }, [user?.id]);
+  }, [patientId]);
 
   const fetchData = async () => {
     try {
       const [consultationRes, statsRes] = await Promise.all([
-        api.get('/consultations'),
-        api.get('/consultations/stats'),
+        api.get(`/consultations?patientId=${patientId}`),
+        api.get(`/consultations/stats?patientId=${patientId}`),
       ]);
       setConsultations(consultationRes.data);
       setStats(statsRes.data);
@@ -236,7 +240,7 @@ const Consultations = () => {
 
   const refreshStats = async () => {
     try {
-      const response = await api.get('/consultations/stats');
+      const response = await api.get(`/consultations/stats?patientId=${patientId}`);
       setStats(response.data);
     } catch (error) {
       console.error('Error refreshing consultation stats:', error);
@@ -260,7 +264,7 @@ const Consultations = () => {
 
     setCreating(true);
     try {
-      const response = await api.post('/consultations', form);
+      const response = await api.post('/consultations', { ...form, patientId });
       setConsultations((current) => [response.data, ...current]);
       setShowCreateModal(false);
       setCreating(false);

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import HealthTimelineComponent from '../components/HealthTimeline';
 import api from '../api/api';
@@ -6,14 +7,17 @@ import { useAuth } from '../context/AuthContext';
 
 const HealthTimeline = () => {
   const { user } = useAuth();
+  const { memberId } = useParams();
+  const patientId = memberId || user?.id;
+
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.id) {
+    if (patientId) {
       const fetchRecords = async () => {
         try {
-          const response = await api.get(`/records/patient/${user.id}`);
+          const response = await api.get(`/records/patient/${patientId}`);
           // Transform records for timeline
           const formatted = response.data.map(r => ({
             ...r,
@@ -28,7 +32,7 @@ const HealthTimeline = () => {
       };
       fetchRecords();
     }
-  }, [user]);
+  }, [patientId]);
 
   return (
     <div className="flex h-screen bg-transparent">

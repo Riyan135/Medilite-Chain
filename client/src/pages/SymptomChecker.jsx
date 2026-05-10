@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
@@ -20,6 +21,10 @@ import api from '../api/api';
 
 const SymptomChecker = () => {
   const { user } = useAuth();
+  const { memberId } = useParams();
+  const patientId = memberId || user?.id;
+  const [patientName, setPatientName] = useState(user?.name || '');
+
   const [symptoms, setSymptoms] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,7 +39,16 @@ const SymptomChecker = () => {
       day: 'numeric',
     };
     setTodayDate(new Date().toLocaleDateString(undefined, options));
-  }, []);
+    
+    if (memberId) {
+      api.get('/family').then(res => {
+        const member = res.data.find(m => m.id === memberId);
+        if (member) setPatientName(member.name);
+      }).catch(console.error);
+    } else {
+      setPatientName(user?.name || '');
+    }
+  }, [memberId, user?.name]);
 
   const handleVoiceCommand = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -116,7 +130,7 @@ const SymptomChecker = () => {
           <div className="rounded-[2rem] border border-white/70 bg-white/70 px-6 py-5 shadow-xl shadow-slate-200/40 backdrop-blur-xl symptom-panel-lift">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Today</p>
             <p className="mt-2 text-lg font-bold text-slate-900">{todayDate || 'Loading date...'}</p>
-            <p className="mt-2 text-sm text-slate-500">Patient: {user?.name || 'Portal User'}</p>
+            <p className="mt-2 text-sm text-slate-500">Patient: {patientName || 'Portal User'}</p>
           </div>
         </header>
 

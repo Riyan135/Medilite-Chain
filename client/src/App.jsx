@@ -113,7 +113,7 @@ function App() {
             }
           />
           <Route
-            path="/dashboard/:memberId"
+            path="/dashboard/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <PatientDashboard />
@@ -121,7 +121,7 @@ function App() {
             }
           />
           <Route
-            path="/timeline"
+            path="/timeline/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <HealthTimeline />
@@ -129,7 +129,7 @@ function App() {
             }
           />
           <Route
-            path="/records"
+            path="/records/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <Records />
@@ -137,7 +137,7 @@ function App() {
             }
           />
           <Route
-            path="/reminders"
+            path="/reminders/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <MedicineReminders />
@@ -155,7 +155,7 @@ function App() {
           />
 
           <Route
-            path="/qr"
+            path="/qr/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <QRProfile />
@@ -163,7 +163,7 @@ function App() {
             }
           />
           <Route
-            path="/symptom-checker"
+            path="/symptom-checker/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <SymptomChecker />
@@ -171,7 +171,7 @@ function App() {
             }
           />
           <Route
-            path="/emergency"
+            path="/emergency/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <EmergencySOS />
@@ -179,7 +179,7 @@ function App() {
             }
           />
           <Route
-            path="/book-appointment"
+            path="/book-appointment/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <AppointmentBooking />
@@ -187,7 +187,7 @@ function App() {
             }
           />
           <Route
-            path="/consultations"
+            path="/consultations/:memberId?"
             element={
               <PrivateRoute allowedRoles={['PATIENT']}>
                 <Consultations />

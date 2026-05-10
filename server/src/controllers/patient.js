@@ -28,6 +28,13 @@ export const getPatientProfile = async (req, res) => {
   const id = req.params.id || req.user.id;
 
   try {
+    if (id !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: id, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to view this patient profile' });
+      }
+    }
+
     const [user, patientProfile] = await Promise.all([
       User.findById(id).select('_id name email role phone profileImageUrl').lean(),
       PatientProfile.findOne({ userId: id }).lean(),
@@ -63,7 +70,10 @@ export const uploadProfilePicture = async (req, res) => {
   const imageUrl = req.file?.path;
 
   if (req.user.role !== 'ADMIN' && req.user.id !== id) {
-    return res.status(403).json({ error: 'You can only update your own profile picture' });
+    const isFamilyMember = await User.exists({ _id: id, parentId: req.user.id });
+    if (!isFamilyMember) {
+      return res.status(403).json({ error: 'You can only update your own or your family member profile picture' });
+    }
   }
 
   if (!imageUrl) {
@@ -100,6 +110,13 @@ export const updatePatientProfile = async (req, res) => {
   const { bloodGroup, allergies, medicalHistory, emergencyContact } = req.body;
 
   try {
+    if (id !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: id, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to update this patient profile' });
+      }
+    }
+
     const updatedProfile = await PatientProfile.findOneAndUpdate(
       { userId: id },
       {
@@ -128,6 +145,13 @@ export const getDashboardStats = async (req, res) => {
   const id = req.params.id || req.user.id;
 
   try {
+    if (id !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: id, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to view dashboard stats for this patient' });
+      }
+    }
+
     const [patientProfile, records] = await Promise.all([
       PatientProfile.findOne({ userId: id }).lean(),
       MedicalRecord.find({ patientUserId: id }).lean(),

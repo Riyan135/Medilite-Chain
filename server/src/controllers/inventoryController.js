@@ -1,5 +1,6 @@
 import PatientProfile from '../models/PatientProfile.js';
 import MedicineInventory from '../models/MedicineInventory.js';
+import User from '../models/User.js';
 
 const normalizeInventory = (item) => ({
   ...item,
@@ -9,6 +10,14 @@ const normalizeInventory = (item) => ({
 export const getInventory = async (req, res) => {
   try {
     const { patientId } = req.params;
+
+    if (patientId !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: patientId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to view inventory for this patient' });
+      }
+    }
+
     const profile = await PatientProfile.findOne({ userId: patientId }).lean();
 
     if (!profile) {
@@ -26,6 +35,14 @@ export const getInventory = async (req, res) => {
 export const addMedicine = async (req, res) => {
   try {
     const { patientId, name, stock, minThreshold, unit } = req.body;
+
+    if (patientId !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: patientId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to add medicine for this patient' });
+      }
+    }
+
     const profile = await PatientProfile.findOne({ userId: patientId }).lean();
 
     if (!profile) {
@@ -52,17 +69,23 @@ export const updateStock = async (req, res) => {
     const { id } = req.params;
     const { stock } = req.body;
 
-    const medicine = await MedicineInventory.findByIdAndUpdate(
-      id,
-      { $set: { stock: parseInt(stock, 10) || 0 } },
-      { new: true }
-    ).lean();
+    const medicine = await MedicineInventory.findById(id);
 
     if (!medicine) {
       return res.status(404).json({ error: 'Medicine not found' });
     }
 
-    res.json(normalizeInventory(medicine));
+    if (medicine.patientUserId !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: medicine.patientUserId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to update this medicine' });
+      }
+    }
+
+    medicine.stock = parseInt(stock, 10) || 0;
+    await medicine.save();
+
+    res.json(normalizeInventory(medicine.toObject()));
   } catch (error) {
     console.error('Update stock error:', error);
     res.status(500).json({ error: error.message });
@@ -72,11 +95,20 @@ export const updateStock = async (req, res) => {
 export const deleteMedicine = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await MedicineInventory.findByIdAndDelete(id).lean();
+    const medicine = await MedicineInventory.findById(id);
 
-    if (!deleted) {
+    if (!medicine) {
       return res.status(404).json({ error: 'Medicine not found' });
     }
+
+    if (medicine.patientUserId !== req.user.id && req.user.role === 'PATIENT') {
+      const isFamilyMember = await User.exists({ _id: medicine.patientUserId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to delete this medicine' });
+      }
+    }
+
+    await MedicineInventory.findByIdAndDelete(id);
 
     res.json({ message: 'Medicine deleted successfully' });
   } catch (error) {

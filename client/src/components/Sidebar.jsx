@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { LayoutGrid, FileText, Bell, Clock, LogOut, User, Pill, MessageSquare, ShieldCheck, Activity, AlertTriangle, Users, Calendar, ClipboardPlus, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -17,6 +17,7 @@ const MediLiteLogo = ({ className = '' }) => (
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { memberId } = useParams();
   const [isOpen, setIsOpen] = useState(true);
 
   const handleLogout = () => {
@@ -24,17 +25,19 @@ const Sidebar = () => {
     navigate('/');
   };
 
+  const buildPath = (basePath) => (memberId ? `${basePath}/${memberId}` : basePath);
+
   const roleLinks = {
     'PATIENT': [
-      { name: 'Dashboard', icon: LayoutGrid, path: '/dashboard' },
-      { name: 'Book Appointment', icon: Calendar, path: '/book-appointment' },
-      { name: 'Consultations', icon: ClipboardPlus, path: '/consultations' },
-      { name: 'Symptom Checker', icon: Activity, path: '/symptom-checker' },
-      { name: 'Records', icon: FileText, path: '/records' },
-      { name: 'Reminders', icon: Bell, path: '/reminders' },
-      { name: 'Timeline', icon: Clock, path: '/timeline' },
-      { name: 'My Profile', icon: User, path: '/qr' },
-      { name: 'Emergency SOS', icon: AlertTriangle, path: '/emergency' },
+      { name: 'Dashboard', icon: LayoutGrid, path: buildPath('/dashboard') },
+      { name: 'Book Appointment', icon: Calendar, path: buildPath('/book-appointment') },
+      { name: 'Consultations', icon: ClipboardPlus, path: buildPath('/consultations') },
+      { name: 'Symptom Checker', icon: Activity, path: buildPath('/symptom-checker') },
+      { name: 'Records', icon: FileText, path: buildPath('/records') },
+      { name: 'Reminders', icon: Bell, path: buildPath('/reminders') },
+      { name: 'Timeline', icon: Clock, path: buildPath('/timeline') },
+      { name: 'My Profile', icon: User, path: buildPath('/qr') },
+      { name: 'Emergency SOS', icon: AlertTriangle, path: buildPath('/emergency') },
     ],
     'DOCTOR': [
       { name: 'Dashboard', icon: LayoutGrid, path: '/doctor-dashboard' },

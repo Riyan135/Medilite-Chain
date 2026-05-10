@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { QRCodeSVG } from 'qrcode.react';
 import { Camera, Download, Share2, User, Mail, Phone, Droplet, IdCard, BadgeCheck, ShieldCheck } from 'lucide-react';
@@ -10,26 +11,42 @@ import { toPng } from 'html-to-image';
 
 const QRProfile = () => {
   const { user, login } = useAuth();
+  const { memberId } = useParams();
   const [profile, setProfile] = useState(null);
   const [showCard, setShowCard] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState('');
   const [scanUrl, setScanUrl] = useState('');
+  const [patientName, setPatientName] = useState(user?.name || '');
+  const [patientId, setPatientId] = useState(user?.id);
 
   useEffect(() => {
-    if (user?.id) {
-      fetchProfile();
-      setScanUrl(`${window.location.origin}/doctor/patient/${user.id}`);
-      setProfilePhoto(user.profileImageUrl || localStorage.getItem(`medilite_profile_photo_${user.id}`) || '');
-    }
-  }, [user?.id, user?.profileImageUrl]);
+    const idToUse = memberId || user?.id;
+    setPatientId(idToUse);
 
-  const fetchProfile = async () => {
+    if (idToUse) {
+      fetchProfile(idToUse);
+      setScanUrl(`${window.location.origin}/doctor/patient/${idToUse}`);
+      
+      if (memberId) {
+        api.get('/family').then(res => {
+          const member = res.data.find(m => m.id === memberId);
+          if (member) setPatientName(member.name);
+        }).catch(console.error);
+      } else {
+        setPatientName(user?.name || '');
+      }
+      
+      setProfilePhoto(user?.profileImageUrl || localStorage.getItem(`medilite_profile_photo_${idToUse}`) || '');
+    }
+  }, [memberId, user?.id, user?.profileImageUrl, user?.name]);
+
+  const fetchProfile = async (id) => {
     try {
-      const response = await api.get(`/patients/profile/${user.id}`);
+      const response = await api.get(`/patients/profile/${id}`);
       setProfile(response.data.patientProfile);
       if (response.data.profileImageUrl) {
         setProfilePhoto(response.data.profileImageUrl);
-        localStorage.setItem(`medilite_profile_photo_${user.id}`, response.data.profileImageUrl);
+        localStorage.setItem(`medilite_profile_photo_${id}`, response.data.profileImageUrl);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -52,19 +69,21 @@ const QRProfile = () => {
     formData.append('profileImage', file);
 
     try {
-      const response = await api.post(`/patients/profile-picture/${user.id}`, formData, {
+      const response = await api.post(`/patients/profile-picture/${patientId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
       const imageUrl = response.data.profileImageUrl;
       setProfilePhoto(imageUrl);
-      localStorage.setItem(`medilite_profile_photo_${user.id}`, imageUrl);
-      login({ ...user, profileImageUrl: imageUrl });
+      localStorage.setItem(`medilite_profile_photo_${patientId}`, imageUrl);
+      if (!memberId) {
+        login({ ...user, profileImageUrl: imageUrl });
+      }
       toast.success('Profile picture updated');
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      setProfilePhoto(user.profileImageUrl || localStorage.getItem(`medilite_profile_photo_${user.id}`) || '');
+      setProfilePhoto(patientId === user.id ? user.profileImageUrl : localStorage.getItem(`medilite_profile_photo_${patientId}`) || '');
       toast.error(error.response?.data?.error || 'Failed to upload profile picture');
     } finally {
       URL.revokeObjectURL(previewUrl);
@@ -149,7 +168,7 @@ const QRProfile = () => {
                 {profilePhoto ? 'Change Photo' : 'Add Photo'}
                 <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
               </label>
-              <h2 className="text-2xl font-black text-slate-900">{user?.name || 'Patient'}</h2>
+              <h2 className="text-2xl font-black text-slate-900">{patientName || 'Patient'}</h2>
               <p className="mt-1 text-sm font-bold text-blue-600">MediLite Patient Profile</p>
               <p className="mt-2 max-w-sm text-xs font-medium leading-5 text-slate-400">
                 Keep your details updated for faster medical access.
@@ -157,11 +176,11 @@ const QRProfile = () => {
             </div>
 
             <div className="mb-8 grid w-full gap-3">
-              <ProfileInfo icon={User} label="Full Name" value={user?.name || 'Not provided'} />
+              <ProfileInfo icon={User} label="Full Name" value={patientName || 'Not provided'} />
               <ProfileInfo icon={Mail} label="Email Address" value={user?.email || 'Not provided'} />
               <ProfileInfo icon={Phone} label="Phone Number" value={user?.phone || 'Not provided'} />
               <ProfileInfo icon={Droplet} label="Blood Group" value={profile?.bloodGroup || 'Not set'} tone="rose" />
-              <ProfileInfo icon={IdCard} label="Patient ID" value={user?.id ? `#${user.id.slice(-8).toUpperCase()}` : 'Not available'} />
+              <ProfileInfo icon={IdCard} label="Patient ID" value={patientId ? `#${patientId.slice(-8).toUpperCase()}` : 'Not available'} />
             </div>
 
             <button
@@ -172,7 +191,7 @@ const QRProfile = () => {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-100">Medical ID Card</p>
-                  <h3 className="mt-2 text-xl font-black">{user?.name || 'Patient'}</h3>
+                  <h3 className="mt-2 text-xl font-black">{patientName || 'Patient'}</h3>
                   <p className="mt-1 text-xs font-bold text-blue-100">
                     {profile?.bloodGroup || 'Blood group not set'} • {user?.phone || 'Phone not provided'}
                   </p>
@@ -209,13 +228,13 @@ const QRProfile = () => {
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-20 h-20 rounded-full bg-indigo-100 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden shrink-0">
                   {profilePhoto ? (
-                    <img src={profilePhoto} alt={`${user?.name || 'Patient'} profile`} className="h-full w-full object-cover" />
+                    <img src={profilePhoto} alt={`${patientName || 'Patient'} profile`} className="h-full w-full object-cover" />
                   ) : (
                     <User className="w-9 h-9 text-indigo-600" />
                   )}
                 </div>
                 <div className="overflow-hidden">
-                  <h3 className="text-xl font-bold text-slate-900 truncate">{user?.name}</h3>
+                  <h3 className="text-xl font-bold text-slate-900 truncate">{patientName}</h3>
                   <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
                     MediLite Patient
                   </span>

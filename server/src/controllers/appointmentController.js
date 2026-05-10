@@ -162,7 +162,7 @@ export const getAppointmentAvailability = async (req, res) => {
 
 export const createAppointment = async (req, res) => {
   try {
-    const { doctorId, date, time, reason, appointmentType, medicalIntake } = req.body;
+    const { doctorId, date, time, reason, appointmentType, medicalIntake, patientId } = req.body;
 
     if (!doctorId || !date || !time) {
       return res.status(400).json({ error: 'Doctor, date, and time are required' });
@@ -172,10 +172,20 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({ error: 'Invalid appointment type' });
     }
 
+    const finalPatientId = patientId || req.user.id;
+
+    // Verify patient authorization
+    if (finalPatientId !== req.user.id) {
+      const isFamilyMember = await User.exists({ _id: finalPatientId, parentId: req.user.id });
+      if (!isFamilyMember) {
+        return res.status(403).json({ error: 'Unauthorized to book for this patient' });
+      }
+    }
+
     const [doctor, patient, patientProfile] = await Promise.all([
       User.findById(doctorId).lean(),
-      User.findById(req.user.id).lean(),
-      PatientProfile.findOne({ userId: req.user.id }).lean(),
+      User.findById(finalPatientId).lean(),
+      PatientProfile.findOne({ userId: finalPatientId }).lean(),
     ]);
 
     if (!doctor || doctor.role !== 'DOCTOR') {
@@ -198,7 +208,7 @@ export const createAppointment = async (req, res) => {
     }
 
     const appointment = await Appointment.create({
-      patientUserId: req.user.id,
+      patientUserId: finalPatientId,
       doctorId,
       date,
       time,
