@@ -11,7 +11,7 @@ const wrapText = (value, maxChars) => {
   let line = '';
 
   words.forEach((word) => {
-    const nextLine = line ? \`\${line} \${word}\` : word;
+    const nextLine = line ? `${line} ${word}` : word;
     if (nextLine.length > maxChars && line) {
       lines.push(line);
       line = word;
@@ -47,14 +47,14 @@ export const buildPrescriptionPdf = (consultation) => {
 
   const raw = (command) => lines.push(command);
   const text = (x, y, value, size = 10, font = 'F1', color = '0.1 0.12 0.18 rg') => {
-    raw(\`\${color} BT /\${font} \${size} Tf \${x} \${y} Td (\${escapePdfText(value)}) Tj ET\`);
+    raw(`${color} BT /${font} ${size} Tf ${x} ${y} Td (${escapePdfText(value)}) Tj ET`);
   };
   const rect = (x, y, width, height, stroke = null, fill = null) => {
-    if (fill) raw(\`\${fill} rg \${x} \${y} \${width} \${height} re f\`);
-    if (stroke) raw(\`\${stroke} \${x} \${y} \${width} \${height} re S\`);
+    if (fill) raw(`${fill} rg ${x} ${y} ${width} ${height} re f`);
+    if (stroke) raw(`${stroke} ${x} ${y} ${width} ${height} re S`);
   };
   const line = (x1, y1, x2, y2, color = '0.9 0.92 0.95 RG', width = 1) => {
-    raw(\`\${width} w \${color} \${x1} \${y1} m \${x2} \${y2} l S\`);
+    raw(`${width} w ${color} ${x1} ${y1} m ${x2} ${y2} l S`);
   };
 
   // Watermark (rotated 45 deg, very light gray/blue)
@@ -92,7 +92,7 @@ export const buildPrescriptionPdf = (consultation) => {
   text(48, infoY - 26, patient.email || '-', 9, 'F1', '0.4 0.4 0.4 rg');
 
   text(220, infoY, 'CONSULTING DOCTOR', 7, 'F2', '0.5 0.55 0.65 rg');
-  text(220, infoY - 14, \`Dr. \${doctor.name || '-'}\`, 11, 'F2', '0.1 0.1 0.1 rg');
+  text(220, infoY - 14, `Dr. ${doctor.name || '-'}`, 11, 'F2', '0.1 0.1 0.1 rg');
   text(220, infoY - 26, doctor.specialization || 'Doctor', 9, 'F1', '0.4 0.4 0.4 rg');
 
   text(400, infoY, 'CONSULTATION DATE', 7, 'F2', '0.5 0.55 0.65 rg');
@@ -164,11 +164,11 @@ export const buildPrescriptionPdf = (consultation) => {
 
   // Signatures
   // Digital Signature
-  text(380, 160, doctor.digitalSignatureName || \`Dr. \${doctor.name || '-'}\`, 18, 'F3', '0.1 0.2 0.4 rg');
+  text(380, 160, doctor.digitalSignatureName || `Dr. ${doctor.name || '-'}`, 18, 'F3', '0.1 0.2 0.4 rg');
   line(370, 150, 540, 150, '0.85 0.88 0.92 RG', 1);
-  text(380, 138, doctor.digitalSignatureName || \`Dr. \${doctor.name || '-'}\`, 9, 'F2');
+  text(380, 138, doctor.digitalSignatureName || `Dr. ${doctor.name || '-'}`, 9, 'F2');
   text(380, 126, doctor.specialization || 'Doctor', 8, 'F1', '0.4 0.4 0.4 rg');
-  text(380, 114, \`License: \${doctor.medicalLicenseNumber || 'Not provided'}\`, 8, 'F1', '0.4 0.4 0.4 rg');
+  text(380, 114, `License: ${doctor.medicalLicenseNumber || 'Not provided'}`, 8, 'F1', '0.4 0.4 0.4 rg');
 
   // Footer
   line(48, 70, 547, 70, '0.9 0.92 0.95 RG', 1);
@@ -179,25 +179,25 @@ export const buildPrescriptionPdf = (consultation) => {
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    \`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 \${pageWidth} \${pageHeight}] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>\`,
+    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic >>',
-    \`<< /Length \${Buffer.byteLength(stream)} >>\\nstream\\n\${stream}\\nendstream\`,
+    `<< /Length ${Buffer.byteLength(stream)} >>\\nstream\\n${stream}\\nendstream`,
   ];
 
   let pdf = '%PDF-1.4\\n';
   const offsets = [0];
   objects.forEach((object, index) => {
     offsets.push(Buffer.byteLength(pdf));
-    pdf += \`\${index + 1} 0 obj\\n\${object}\\nendobj\\n\`;
+    pdf += `${index + 1} 0 obj\\n${object}\\nendobj\\n`;
   });
   const xrefOffset = Buffer.byteLength(pdf);
-  pdf += \`xref\\n0 \${objects.length + 1}\\n0000000000 65535 f \\n\`;
+  pdf += `xref\\n0 ${objects.length + 1}\\n0000000000 65535 f \\n`;
   offsets.slice(1).forEach((offset) => {
-    pdf += \`\${String(offset).padStart(10, '0')} 00000 n \\n\`;
+    pdf += `${String(offset).padStart(10, '0')} 00000 n \\n`;
   });
-  pdf += \`trailer\\n<< /Size \${objects.length + 1} /Root 1 0 R >>\\nstartxref\\n\${xrefOffset}\\n%%EOF\`;
+  pdf += `trailer\\n<< /Size ${objects.length + 1} /Root 1 0 R >>\\nstartxref\\n${xrefOffset}\\n%%EOF`;
 
   return Buffer.from(pdf, 'binary');
 };
