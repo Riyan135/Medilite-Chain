@@ -269,7 +269,7 @@ const AdminDashboard = () => {
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 animate-slide-up-fade">
           <StatCard 
-            title="Today Appointment s" 
+            title="My Patients" 
             value={loading ? "..." : (stats?.myPatientsCount || "0")} 
             subtitle="Patients consulted" 
             icon={Users} 
