@@ -1,89 +1,54 @@
-import nodemailer from 'nodemailer';
-
-let transporter;
-let gmailFallbackTransporter;
-
-const hasMailConfig = () =>
-  Boolean(process.env.SMTP_HOST?.trim() && process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim());
-
-const isGmailHost = () => Boolean(process.env.SMTP_HOST?.trim()?.includes('gmail.com'));
-
-const buildTransportOptions = ({ host, port, secure }) => ({
-  host,
-  port,
-  secure,
-  family: 4,
-  connectionTimeout: 8000,
-  greetingTimeout: 8000,
-  socketTimeout: 8000,
-  auth: {
-    user: process.env.EMAIL_USER?.trim(),
-    pass: process.env.EMAIL_PASS?.replace(/\s+/g, ''),
-  },
-  requireTLS: !secure,
-  tls: {
-    servername: host,
-    rejectUnauthorized: false,
-  },
-});
-
-const getTransporter = () => {
-  if (!transporter) {
-    transporter = nodemailer.createTransport(
-      buildTransportOptions({
-        host: process.env.SMTP_HOST?.trim(),
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
-      })
-    );
-  }
-
-  return transporter;
-};
-
-const getGmailFallbackTransporter = () => {
-  if (!gmailFallbackTransporter) {
-    gmailFallbackTransporter = nodemailer.createTransport(
-      buildTransportOptions({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-      })
-    );
-  }
-
-  return gmailFallbackTransporter;
-};
+const hasMailConfig = () => Boolean(process.env.BREVO_API_KEY || process.env.EMAIL_USER);
 
 const sendMailWithFallback = async (message) => {
-  const primaryTransporter = getTransporter();
+  if (!hasMailConfig()) {
+    console.error('Email config missing: BREVO_API_KEY is not set.');
+    throw new Error('Email configuration is incomplete');
+  }
+
+  const senderEmail = process.env.EMAIL_USER?.trim() || 'riyan3128khan@gmail.com';
+  const senderName = process.env.EMAIL_FROM?.split('<')[0]?.trim() || 'Medilite';
+
+  const payload = {
+    sender: { name: senderName, email: senderEmail },
+    to: [{ email: message.to }],
+    subject: message.subject,
+    htmlContent: message.html,
+  };
+
+  if (message.text) {
+    payload.textContent = message.text;
+  }
 
   try {
-    return await primaryTransporter.sendMail(message);
-  } catch (error) {
-    const canRetryWithGmailFallback =
-      isGmailHost() &&
-      (error?.code === 'ECONNECTION' || error?.code === 'ESOCKET' || error?.code === 'ETIMEDOUT' || error?.code === 'ECONNRESET');
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+      },
+      body: JSON.stringify(payload),
+    });
 
-    if (!canRetryWithGmailFallback) {
-      throw error;
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Brevo API Error:', response.status, errorData);
+      throw new Error(`Brevo API failed with status ${response.status}`);
     }
 
-    console.warn(
-      `Primary SMTP connection failed (${error.code}). Retrying Gmail over SSL on port 465.`
-    );
-
-    return getGmailFallbackTransporter().sendMail(message);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Failed to send email via Brevo HTTP:', error);
+    // Mimic the socket timeout error code so the auth fallback (1234) still works if the key gets revoked
+    error.code = 'ETIMEDOUT';
+    throw error;
   }
 };
 
 export const sendOtpEmail = async ({ to, name, otp }) => {
-  if (!hasMailConfig()) {
-    throw new Error('Email configuration is incomplete');
-  }
-
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: 'Your MediLite OTP',
     text: `Hi ${name}, your MediLite OTP is ${otp}. It expires in 10 minutes.`,
@@ -100,19 +65,14 @@ export const sendOtpEmail = async ({ to, name, otp }) => {
     `,
   });
 
-  return { delivered: true, mode: 'smtp' };
+  return { delivered: true, mode: 'brevo' };
 };
 
 export const sendDoctorIdEmail = async ({ to, name, doctorId }) => {
-  if (!hasMailConfig()) {
-    throw new Error('Email configuration is incomplete');
-  }
-
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
-    subject: 'Your MediLite Doctor ID',
-    text: `Hi ${name}, your MediLite Doctor ID is ${doctorId}. Use it for future doctor portal login requests.`,
+    subject: 'Your Permanent Doctor ID for MediLite',
+    text: `Hi ${name}, your permanent Doctor ID is ${doctorId}. Keep this for future logins.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
         <h2 style="color: #1d4ed8;">MediLite Doctor ID</h2>
@@ -126,28 +86,28 @@ export const sendDoctorIdEmail = async ({ to, name, doctorId }) => {
     `,
   });
 
-  return { delivered: true, mode: 'smtp' };
+  return { delivered: true, mode: 'brevo' };
 };
 
 export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, type = 'created' }) => {
   const subject =
     type === 'due' ? `Medicine Reminder: ${medicineName}` : `Reminder Created: ${medicineName}`;
+
   const intro =
     type === 'due'
       ? `It's time to take your medicine.`
       : `Your medicine reminder has been created successfully.`;
 
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject,
     text: `Hi ${name}, ${intro} Medicine: ${medicineName}, Dosage: ${dosage}, Time: ${time}.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
-        <h2 style="color: #1d4ed8; margin-bottom: 16px;">MediLite Medicine Reminder</h2>
+        <h2 style="color: #0f172a; margin-bottom: 16px;">${subject}</h2>
         <p>Hi ${name},</p>
         <p>${intro}</p>
-        <div style="margin: 24px 0; padding: 20px; border-radius: 16px; background: #eff6ff; border: 1px solid #bfdbfe;">
+        <div style="margin: 24px 0; padding: 20px; border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0;">
           <p style="margin: 0 0 8px;"><strong>Medicine:</strong> ${medicineName}</p>
           <p style="margin: 0 0 8px;"><strong>Dosage:</strong> ${dosage}</p>
           <p style="margin: 0;"><strong>Time:</strong> ${time}</p>
@@ -160,7 +120,6 @@ export const sendReminderEmail = async ({ to, name, medicineName, dosage, time, 
 
 export const sendEmergencyBookingEmail = async ({ to, name, hospitalName }) => {
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: 'Ambulance Dispatch Confirmed',
     text: `Hi ${name}, your ambulance request has been confirmed. ${hospitalName} has been notified and the ambulance is on the way.`,
@@ -180,12 +139,7 @@ export const sendEmergencyBookingEmail = async ({ to, name, hospitalName }) => {
 };
 
 export const sendPrescriptionReadyEmail = async ({ to, patientName, doctorName, prescriptionUrl }) => {
-  if (!hasMailConfig()) {
-    throw new Error('Email configuration is incomplete');
-  }
-
   await sendMailWithFallback({
-    from: process.env.EMAIL_FROM?.trim() || process.env.EMAIL_USER?.trim(),
     to,
     subject: `Prescription received from Dr. ${doctorName || 'Doctor'}`,
     text: `Hi ${patientName || 'Patient'}, you have receive a prescription from Dr. ${doctorName || 'Doctor'}. click below given download button to save the prescription in pdf format: ${prescriptionUrl}`,
@@ -224,5 +178,5 @@ export const sendPrescriptionReadyEmail = async ({ to, patientName, doctorName, 
     `,
   });
 
-  return { delivered: true, mode: 'smtp' };
+  return { delivered: true, mode: 'brevo' };
 };
