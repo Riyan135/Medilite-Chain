@@ -12,6 +12,9 @@ const buildTransportOptions = ({ host, port, secure }) => ({
   host,
   port,
   secure,
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 8000,
   auth: {
     user: process.env.EMAIL_USER?.trim(),
     pass: process.env.EMAIL_PASS?.replace(/\s+/g, ''),
