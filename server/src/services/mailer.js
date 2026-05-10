@@ -12,6 +12,7 @@ const buildTransportOptions = ({ host, port, secure }) => ({
   host,
   port,
   secure,
+  family: 4,
   connectionTimeout: 8000,
   greetingTimeout: 8000,
   socketTimeout: 8000,
