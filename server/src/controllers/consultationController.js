@@ -198,7 +198,7 @@ export const getConsultationById = async (req, res) => {
 
 const sendPrescriptionPdfResponse = async (res, consultation) => {
   const hydrated = await hydrateConsultation(consultation);
-  const pdf = buildPrescriptionPdf(hydrated);
+  const pdf = await buildPrescriptionPdf(hydrated);
   const patientName = hydrated.patient?.name || 'patient';
   const fileName = `MediLite-Prescription-${patientName.replace(/[^a-z0-9]+/gi, '-')}.pdf`;
 
