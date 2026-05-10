@@ -123,8 +123,9 @@ const AdminDashboard = () => {
               ))}
             </div>
 
-            <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               <MiniPanel title="Audit Events" value={stats?.recentLogs?.length || 0} icon={Lock} />
+              <MiniPanel title="Active Patients" value={stats?.loggedInPatients || 0} icon={UsersRound} />
               <MiniPanel title="Emergency Flow" value="Ready" icon={Siren} />
               <MiniPanel title="Backup Window" value="02:00" icon={HardDriveDownload} />
             </div>

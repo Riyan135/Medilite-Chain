@@ -269,9 +269,9 @@ const AdminDashboard = () => {
 
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 animate-slide-up-fade">
           <StatCard 
-            title="Total Patients" 
-            value={loading ? "..." : (stats?.loggedInPatients || "0")} 
-            subtitle="Patients who logged into the portal" 
+            title="Today Appointment s" 
+            value={loading ? "..." : (stats?.myPatientsCount || "0")} 
+            subtitle="Patients consulted" 
             icon={Users} 
             theme="blue"
             onClick={() => document.getElementById('patient-overview')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -336,7 +336,7 @@ const AdminDashboard = () => {
                 Patient Overview
               </h3>
               <p className="text-sm text-slate-400 font-medium">
-                {stats?.loggedInPatients || 0} Logged In Patients
+                {stats?.myPatientsCount || 0} My Patients
               </p>
             </div>
             <div className="overflow-x-auto">
