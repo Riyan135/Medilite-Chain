@@ -13,6 +13,7 @@ const buildTransportOptions = ({ host, port, secure }) => ({
   port,
   secure,
   family: 4,
+  localAddress: '0.0.0.0',
   auth: {
     user: process.env.EMAIL_USER?.trim(),
     pass: process.env.EMAIL_PASS?.replace(/\s+/g, ''),
