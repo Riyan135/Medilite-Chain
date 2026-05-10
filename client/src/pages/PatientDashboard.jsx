@@ -1,4 +1,4 @@
-import { PlusCircle, ArrowUpRight, Shield, Heart, FileText, Pill, MessageSquare, AlertTriangle, User, CalendarClock, Users } from 'lucide-react';
+import { PlusCircle, ArrowUpRight, Shield, Heart, FileText, Pill, MessageSquare, AlertTriangle, User, CalendarClock, Users, Pencil } from 'lucide-react';
 import MedicalRecordUpload from '../components/MedicalRecordUpload';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -140,6 +140,9 @@ const EditProfileModal = ({ profile, onClose }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    gender: profile?.gender || '',
     bloodGroup: profile?.bloodGroup || '',
     allergies: profile?.allergies || '',
     emergencyContact: profile?.emergencyContact || ''
@@ -149,8 +152,16 @@ const EditProfileModal = ({ profile, onClose }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.put(`/patients/profile/${profile?.userId || user?.id}`, formData);
-      toast.success('Medical profile updated');
+      // Update basic user info
+      await api.put(`/patients/users/${user?.id}`, { name: formData.name, phone: formData.phone });
+      // Update patient profile info
+      await api.put(`/patients/profile/${profile?.userId || user?.id}`, {
+        gender: formData.gender,
+        bloodGroup: formData.bloodGroup,
+        allergies: formData.allergies,
+        emergencyContact: formData.emergencyContact
+      });
+      toast.success('Profile updated');
       onClose();
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -165,15 +176,38 @@ const EditProfileModal = ({ profile, onClose }) => {
       <div className="bg-white/90 backdrop-blur-2xl w-full max-w-md rounded-[2rem] shadow-2xl p-10 border border-white/60 transform animate-in fade-in zoom-in duration-300">
         <h2 className="text-2xl font-black text-slate-900 mb-8 tracking-tight">Edit Medical Profile</h2>
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 tracking-wide uppercase mb-2">Blood Group</label>
+          <div className="mb-4">
+            <label className="block text-sm font-bold text-slate-700 uppercase mb-2">Name</label>
             <input
               type="text"
-              value={formData.bloodGroup}
-              onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none transition-all font-medium text-slate-900"
-              placeholder="e.g. O+ve"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none"
+              placeholder="Your full name"
             />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-bold text-slate-700 uppercase mb-2">Phone</label>
+            <input
+              type="text"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none"
+              placeholder="e.g. +1234567890"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-bold text-slate-700 uppercase mb-2">Gender</label>
+            <select
+              value={formData.gender}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none"
+            >
+              <option value="">Select gender</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 tracking-wide uppercase mb-2">Allergies</label>
@@ -334,27 +368,6 @@ const PatientDashboard = () => {
           </div>
         </header>
 
-
-        {/* {lowStockItems.length > 0 && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <p className="font-bold text-red-900">Low Stock Alert!</p>
-                <p className="text-sm text-red-600">You have {lowStockItems.length} medicines running low.</p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/inventory')}
-              className="px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-red-200"
-            >
-              Manage Inventory
-            </button>
-          </div>
-        )} */}
-
         <section className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card
             title="Total Records"
@@ -457,10 +470,10 @@ const PatientDashboard = () => {
               </button>
               <button
                 onClick={() => setShowEditProfile(true)}
-                className="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-4 text-left font-bold text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-100 hover:bg-indigo-50"
+                className="flex w-full items-center justify-between rounded-2xl border border-indigo-100 bg-indigo-50/80 px-4 py-4 text-left font-bold text-indigo-700 transition-all duration-300 hover:-translate-y-0.5 hover:bg-indigo-100"
               >
-                Update emergency profile
-                <User className="h-5 w-5 text-indigo-600" />
+                Edit Profile
+                <Pencil className="h-5 w-5 text-indigo-600" />
               </button>
             </div>
           </section>

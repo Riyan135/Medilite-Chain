@@ -15,12 +15,14 @@ const ConsultationCallModal = ({ call, socket, onClose }) => {
   const [status, setStatus] = useState(call?.isInitiator ? 'Connecting...' : 'Waiting for connection...');
 
   const attachRemoteMedia = () => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+    const stream = remoteStreamRef.current;
+    if (!stream) return;
+    if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== stream) {
+      remoteVideoRef.current.srcObject = stream;
       remoteVideoRef.current.play?.().catch(() => {});
     }
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.srcObject = remoteStreamRef.current;
+    if (remoteAudioRef.current && remoteAudioRef.current.srcObject !== stream) {
+      remoteAudioRef.current.srcObject = stream;
       remoteAudioRef.current.play?.().catch(() => {});
     }
   };
@@ -49,7 +51,7 @@ const ConsultationCallModal = ({ call, socket, onClose }) => {
         }
 
         localStreamRef.current = localStream;
-        remoteStreamRef.current = new MediaStream();
+        remoteStreamRef.current = null;
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = localStream;
@@ -66,13 +68,10 @@ const ConsultationCallModal = ({ call, socket, onClose }) => {
         });
 
         peerConnection.ontrack = (event) => {
-          event.streams[0].getTracks().forEach((track) => {
-            const existingTrackIds = remoteStreamRef.current.getTracks().map((item) => item.id);
-            if (!existingTrackIds.includes(track.id)) {
-              remoteStreamRef.current.addTrack(track);
-            }
-          });
-          attachRemoteMedia();
+          if (event.streams && event.streams[0]) {
+            remoteStreamRef.current = event.streams[0];
+            attachRemoteMedia();
+          }
           setStatus('Connected');
         };
 

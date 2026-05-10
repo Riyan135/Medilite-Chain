@@ -107,7 +107,7 @@ export const uploadProfilePicture = async (req, res) => {
 
 export const updatePatientProfile = async (req, res) => {
   const id = req.params.id || req.user.id;
-  const { bloodGroup, allergies, medicalHistory, emergencyContact } = req.body;
+  const { bloodGroup, allergies, medicalHistory, emergencyContact, gender } = req.body;
 
   try {
     if (id !== req.user.id && req.user.role === 'PATIENT') {
@@ -121,10 +121,11 @@ export const updatePatientProfile = async (req, res) => {
       { userId: id },
       {
         $set: {
-          bloodGroup: bloodGroup || null,
-          allergies: allergies || null,
-          medicalHistory: medicalHistory || null,
-          emergencyContact: emergencyContact || null,
+          ...(bloodGroup !== undefined && { bloodGroup: bloodGroup || null }),
+          ...(allergies !== undefined && { allergies: allergies || null }),
+          ...(medicalHistory !== undefined && { medicalHistory: medicalHistory || null }),
+          ...(emergencyContact !== undefined && { emergencyContact: emergencyContact || null }),
+          ...(gender !== undefined && { gender: gender || null }),
         },
       },
       { new: true }
@@ -138,6 +139,45 @@ export const updatePatientProfile = async (req, res) => {
   } catch (error) {
     console.error('Error updating patient profile:', error);
     res.status(500).json({ error: 'Failed to update patient profile' });
+  }
+};
+
+export const updateUserBasicInfo = async (req, res) => {
+  const id = req.params.id || req.user.id;
+  const { name, phone } = req.body;
+
+  // Only allow users to update their own info (or admins)
+  if (id !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'SYSTEM_ADMIN') {
+    return res.status(403).json({ error: 'Unauthorized to update this user' });
+  }
+
+  try {
+    const updates = {};
+    if (name && name.trim()) updates.name = name.trim();
+    if (phone !== undefined) updates.phone = phone.trim() || null;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    const user = await User.findByIdAndUpdate(id, { $set: updates }, { new: true })
+      .select('_id name email role phone profileImageUrl');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json({
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone || null,
+      profileImageUrl: user.profileImageUrl || null,
+    });
+  } catch (error) {
+    console.error('Error updating user info:', error);
+    res.status(500).json({ error: 'Failed to update user info' });
   }
 };
 
