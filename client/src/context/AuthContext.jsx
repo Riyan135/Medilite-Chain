@@ -25,13 +25,19 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('medilite_user');
   };
 
+  const updateUser = (userData) => {
+    const updatedUser = { ...user, ...userData };
+    setUser(updatedUser);
+    localStorage.setItem('medilite_user', JSON.stringify(updatedUser));
+  };
+
   const register = (userData) => {
     setUser(userData);
     localStorage.setItem('medilite_user', JSON.stringify(userData));
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

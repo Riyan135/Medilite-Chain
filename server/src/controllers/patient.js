@@ -154,6 +154,7 @@ export const updateUserBasicInfo = async (req, res) => {
   try {
     const updates = {};
     if (name && name.trim()) updates.name = name.trim();
+    if (email && email.trim()) updates.email = email.trim().toLowerCase();
     if (phone !== undefined) updates.phone = phone.trim() || null;
 
     if (Object.keys(updates).length === 0) {

@@ -137,10 +137,11 @@ const HealthScoreModal = ({ profile, stats, onClose }) => {
 };
 
 const EditProfileModal = ({ profile, onClose }) => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || '',
+    email: user?.email || '',
     phone: user?.phone || '',
     gender: profile?.gender || '',
     bloodGroup: profile?.bloodGroup || '',
@@ -153,7 +154,16 @@ const EditProfileModal = ({ profile, onClose }) => {
     setLoading(true);
     try {
       // Update basic user info
-      await api.put(`/patients/users/${user?.id}`, { name: formData.name, phone: formData.phone });
+      const userRes = await api.put(`/patients/users/${user?.id}`, { 
+        name: formData.name, 
+        email: formData.email, 
+        phone: formData.phone 
+      });
+      
+      // Sync AuthContext with updated user info
+      if (updateUser && userRes.data) {
+        updateUser(userRes.data);
+      }
       // Update patient profile info
       await api.put(`/patients/profile/${profile?.userId || user?.id}`, {
         gender: formData.gender,
@@ -184,6 +194,16 @@ const EditProfileModal = ({ profile, onClose }) => {
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none"
               placeholder="Your full name"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-bold text-slate-700 uppercase mb-2">Email Address</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none"
+              placeholder="your.email@example.com"
             />
           </div>
           <div className="mb-4">
