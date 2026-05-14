@@ -3,6 +3,7 @@ import mongoose from '../lib/mongoose.js';
 const patientProfileSchema = new mongoose.Schema(
   {
     userId: { type: String, required: true, unique: true, index: true },
+    dob: { type: Date, default: null },
     bloodGroup: { type: String, default: null },
     allergies: { type: String, default: null },
     medicalHistory: { type: String, default: null },

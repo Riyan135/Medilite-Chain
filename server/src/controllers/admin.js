@@ -25,6 +25,7 @@ export const getSystemStats = async (req, res) => {
       ongoingConsultations,
       completedConsultations,
       medicines,
+      myPatientsCount,
     ] = await Promise.all([
       User.countDocuments(),
       MedicalRecord.countDocuments(),
@@ -39,7 +40,7 @@ export const getSystemStats = async (req, res) => {
       Consultation.countDocuments({ ...doctorScopedQuery, status: 'ONGOING' }),
       Consultation.countDocuments({ ...doctorScopedQuery, status: 'COMPLETED' }),
       Medicine.find().lean(),
-      req.user?.role === 'DOCTOR' ? Appointment.distinct('patientId', doctorScopedQuery).then(res => res.length) : Promise.resolve(0),
+      User.countDocuments({ role: 'PATIENT' }),
     ]);
 
     const serializedMedicines = medicines.map(serializeMedicine);
@@ -56,6 +57,7 @@ export const getSystemStats = async (req, res) => {
       totalConsultations,
       ongoingConsultations,
       completedConsultations,
+      myPatientsCount,
       totalMedicines: serializedMedicines.length,
       lowStockMedicines: serializedMedicines.filter((item) => item.isLowStock).length,
       expiredMedicines: serializedMedicines.filter((item) => item.isExpired).length,

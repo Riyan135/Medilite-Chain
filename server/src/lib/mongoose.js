@@ -50,7 +50,7 @@ export const connectMongo = async () => {
       ? undefined
       : 'medilite-chain',
     family: 4,
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
   });
 

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Download, Share2, User, Mail, Phone, Droplet, IdCard, BadgeCheck, ShieldCheck } from 'lucide-react';
+import { Camera, Download, Share2, User, Mail, Phone, Droplet, IdCard, BadgeCheck, ShieldCheck, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
@@ -25,7 +25,7 @@ const QRProfile = () => {
 
     if (idToUse) {
       fetchProfile(idToUse);
-      setScanUrl(`${window.location.origin}/doctor/patient/${idToUse}`);
+      setScanUrl(`${window.location.origin}/scan/${idToUse}`);
       
       if (memberId) {
         api.get('/family').then(res => {
@@ -179,6 +179,7 @@ const QRProfile = () => {
               <ProfileInfo icon={User} label="Full Name" value={patientName || 'Not provided'} />
               <ProfileInfo icon={Mail} label="Email Address" value={user?.email || 'Not provided'} />
               <ProfileInfo icon={Phone} label="Phone Number" value={user?.phone || 'Not provided'} />
+              <ProfileInfo icon={Calendar} label="Date of Birth" value={profile?.dob ? new Date(profile.dob).toLocaleDateString() : 'Not set'} tone="indigo" />
               <ProfileInfo icon={Droplet} label="Blood Group" value={profile?.bloodGroup || 'Not set'} tone="rose" />
               <ProfileInfo icon={IdCard} label="Patient ID" value={patientId ? `#${patientId.slice(-8).toUpperCase()}` : 'Not available'} />
             </div>
@@ -193,7 +194,7 @@ const QRProfile = () => {
                   <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-100">Medical ID Card</p>
                   <h3 className="mt-2 text-xl font-black">{patientName || 'Patient'}</h3>
                   <p className="mt-1 text-xs font-bold text-blue-100">
-                    {profile?.bloodGroup || 'Blood group not set'} • {user?.phone || 'Phone not provided'}
+                    {profile?.bloodGroup || 'Blood group not set'} â€¢ {user?.phone || 'Phone not provided'}
                   </p>
                 </div>
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/18 backdrop-blur">
@@ -266,6 +267,14 @@ const QRProfile = () => {
                     <span className="text-slate-900 font-bold">{profile?.bloodGroup || 'Not set'}</span>
                   </div>
                 </div>
+
+                <div>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-1.5">Date of Birth</p>
+                  <div className="flex items-center text-slate-700 text-[13px] font-medium">
+                    <Calendar className="w-3.5 h-3.5 mr-2.5 text-indigo-400 shrink-0" />
+                    <span className="text-slate-900 font-bold">{profile?.dob ? new Date(profile.dob).toLocaleDateString() : 'Not set'}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -329,3 +338,4 @@ const ProfileInfo = ({ icon: Icon, label, value, tone = 'blue' }) => {
 };
 
 export default QRProfile;
+

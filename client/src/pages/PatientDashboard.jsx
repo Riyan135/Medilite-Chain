@@ -12,7 +12,7 @@ const Card = ({ title, value, icon: Icon, color, onClick, interactive = false, p
   <button
     type="button"
     onClick={onClick}
-    className={`patient-dashboard-panel group relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/75 p-8 text-left backdrop-blur-xl ${interactive ? 'cursor-pointer' : 'cursor-default'}`}
+    className={`patient-dashboard-panel group relative overflow-hidden rounded-[2rem] border border-white/60 bg-white p-8 text-left shadow-sm transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02] hover:border-blue-200/50 ${interactive ? 'cursor-pointer' : 'cursor-default'}`}
     disabled={!interactive}
   >
     <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-r from-blue-100/60 via-cyan-100/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -145,6 +145,7 @@ const EditProfileModal = ({ profile, onClose }) => {
     phone: user?.phone || '',
     gender: profile?.gender || '',
     bloodGroup: profile?.bloodGroup || '',
+    dob: profile?.dob ? new Date(profile.dob).toISOString().split('T')[0] : '',
     allergies: profile?.allergies || '',
     emergencyContact: profile?.emergencyContact || ''
   });
@@ -168,6 +169,7 @@ const EditProfileModal = ({ profile, onClose }) => {
       await api.put(`/patients/profile/${profile?.userId || user?.id}`, {
         gender: formData.gender,
         bloodGroup: formData.bloodGroup,
+        dob: formData.dob,
         allergies: formData.allergies,
         emergencyContact: formData.emergencyContact
       });
@@ -216,18 +218,48 @@ const EditProfileModal = ({ profile, onClose }) => {
               placeholder="e.g. +1234567890"
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-bold text-slate-700 uppercase mb-2">Gender</label>
-            <select
-              value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-              className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none"
-            >
-              <option value="">Select gender</option>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 uppercase mb-2">Gender</label>
+              <select
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none font-bold"
+              >
+                <option value="">Select gender</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 uppercase mb-2">Date of Birth</label>
+              <input
+                type="date"
+                value={formData.dob}
+                onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                className="w-full px-5 py-4 bg-slate-50/50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 outline-none font-bold"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 tracking-wide uppercase mb-3">Blood Group</label>
+            <div className="grid grid-cols-4 gap-2">
+              {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                <button
+                  key={bg}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, bloodGroup: bg })}
+                  className={`py-3 rounded-xl text-sm font-black transition-all ${
+                    formData.bloodGroup === bg
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {bg}
+                </button>
+              ))}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 tracking-wide uppercase mb-2">Allergies</label>
@@ -379,11 +411,11 @@ const PatientDashboard = () => {
               Support Chat
             </button>
             <button
-              onClick={() => setShowUpload(true)}
+              onClick={() => setShowEditProfile(true)}
               className="flex items-center rounded-2xl bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 px-6 py-4 font-black text-white shadow-xl shadow-blue-600/25 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-600/30 active:scale-[0.98]"
             >
-              <PlusCircle className="w-5 h-5 mr-3" />
-              Upload New Record
+              <Pencil className="w-5 h-5 mr-3" />
+              Edit Profile
             </button>
           </div>
         </header>
@@ -552,6 +584,10 @@ const PatientDashboard = () => {
                 <div className="flex justify-between text-sm py-3 border-b border-indigo-400/30">
                   <span className="text-indigo-200 font-semibold tracking-wide uppercase text-xs">Allergies</span>
                   <span className="font-black">{loading ? "..." : profile?.allergies || "None"}</span>
+                </div>
+                <div className="flex justify-between text-sm py-3 border-b border-indigo-400/30">
+                  <span className="text-indigo-200 font-semibold tracking-wide uppercase text-xs">Date of Birth</span>
+                  <span className="font-black">{loading ? "..." : profile?.dob ? new Date(profile.dob).toLocaleDateString() : "Not Set"}</span>
                 </div>
                 {profile?.consultingDoctor && (
                   <div className="mt-6 pt-4 border-t border-indigo-400/30">

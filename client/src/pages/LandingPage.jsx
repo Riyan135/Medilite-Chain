@@ -75,7 +75,10 @@ const LandingPage = () => {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 landing-rise" style={{ animationDelay: '0.46s' }}>
           {user ? (
-            <Link to="/dashboard" className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 landing-button-sheen">
+            <Link 
+              to={user.role === 'DOCTOR' ? "/doctor-dashboard" : "/dashboard"} 
+              className="w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-lg hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 landing-button-sheen"
+            >
               Go to Portal <ArrowRight className="h-5 w-5" />
             </Link>
           ) : (

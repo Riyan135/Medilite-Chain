@@ -17,6 +17,8 @@ import EmergencySOS from './pages/EmergencySOS';
 import FamilyProfiles from './pages/FamilyProfiles';
 import AppointmentBooking from './pages/AppointmentBooking';
 import Consultations from './pages/Consultations';
+import ScanRedirect from './pages/ScanRedirect';
+import PublicEmergencyProfile from './pages/PublicEmergencyProfile';
 import { SocketProvider } from './context/SocketContext';
 
 const systemAdminUrl = import.meta.env.VITE_SYSTEM_ADMIN_URL || 'http://localhost:5175';
@@ -43,12 +45,14 @@ const PrivateRoute = ({ children, allowedRoles }) => {
       'ADMIN': systemAdminUrl,
     };
 
-    if (user.role === 'ADMIN') {
-      window.location.href = dashboardMap['ADMIN'];
+    const targetPath = dashboardMap[user.role] || '/';
+    
+    if (targetPath.startsWith('http')) {
+      window.location.href = targetPath;
       return null;
     }
 
-    return <Navigate to={dashboardMap[user.role] || '/'} replace />;
+    return <Navigate to={targetPath} replace />;
   }
 
   return children;
@@ -212,6 +216,13 @@ function App() {
               </PrivateRoute>
             }
           />
+
+
+          {/* Scan Redirect Route */}
+          <Route path="/scan/:id" element={<ScanRedirect />} />
+          
+          {/* Public Emergency Profile */}
+          <Route path="/emergency-profile/:id" element={<PublicEmergencyProfile />} />
 
 
           {/* Fallback */}

@@ -3,6 +3,16 @@ import User from '../models/User.js';
 import PatientProfile from '../models/PatientProfile.js';
 import { createConsultationFromAppointment } from './consultationController.js';
 
+const resolvePatient = async (id) => {
+  if (!id) return null;
+  let p = null;
+  try {
+    p = await User.findById(id).lean();
+  } catch (err) {}
+  if (!p) p = await User.findOne({ clerkId: id }).lean();
+  return p;
+};
+
 const emitAppointmentEvent = (req, room, eventName, appointment) => {
   const io = req.app.get('io');
   if (io && room) {
@@ -84,10 +94,14 @@ const toPatientSummary = (patient) => ({
 
 const hydrateAppointment = async (appointment) => {
   const value = appointment.toObject ? appointment.toObject() : { ...appointment };
-  const [doctor, patient] = await Promise.all([
+  let [doctor, patient] = await Promise.all([
     User.findById(value.doctorId).select('_id name email specialization').lean(),
     User.findById(value.patientUserId).select('_id name email age gender dateOfBirth phone').lean(),
   ]);
+
+  if (!patient && value.patientUserId) {
+    patient = await User.findOne({ clerkId: value.patientUserId }).select('_id name email age gender dateOfBirth phone').lean();
+  }
 
   return {
     ...value,
@@ -172,28 +186,56 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({ error: 'Invalid appointment type' });
     }
 
-    const finalPatientId = patientId || req.user.id;
+    const targetId = (patientId && patientId !== 'undefined') ? patientId : req.user.id;
+    let targetPatient = await resolvePatient(targetId);
+    
+    if (!targetPatient && (targetId === req.user.id || targetId === req.user.clerkId)) {
+       targetPatient = req.user;
+    }
+
+    if (!targetPatient) {
+      // Final attempt: maybe the ID is valid but resolvePatient missed it
+      targetPatient = await User.findById(req.user.id).lean();
+      if (!targetPatient) targetPatient = req.user;
+    }
+
+    const finalPatientId = targetPatient?._id?.toString() || targetPatient?.id;
 
     // Verify patient authorization
-    if (finalPatientId !== req.user.id) {
+    const isSelf = finalPatientId === req.user.id || (targetPatient && targetPatient.clerkId === req.user.clerkId);
+    
+    if (!isSelf) {
       const isFamilyMember = await User.exists({ _id: finalPatientId, parentId: req.user.id });
       if (!isFamilyMember) {
-        return res.status(403).json({ error: 'Unauthorized to book for this patient' });
+        // If doctor is booking for themselves, bypass
+        if (req.user.role !== 'DOCTOR') {
+          return res.status(403).json({ error: 'Unauthorized to book for this patient' });
+        }
       }
     }
 
-    const [doctor, patient, patientProfile] = await Promise.all([
+    const [doctor, patientProfile] = await Promise.all([
       User.findById(doctorId).lean(),
-      User.findById(finalPatientId).lean(),
       PatientProfile.findOne({ userId: finalPatientId }).lean(),
     ]);
+    const patient = targetPatient;
 
     if (!doctor || doctor.role !== 'DOCTOR') {
       return res.status(404).json({ error: 'Doctor not found' });
     }
 
-    if (!patient || !patientProfile) {
-      return res.status(404).json({ error: 'Patient profile not found' });
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    let finalProfile = patientProfile;
+    if (!finalProfile) {
+      console.log('CREATING ON-THE-FLY PROFILE FOR:', finalPatientId);
+      finalProfile = await PatientProfile.create({
+        userId: finalPatientId,
+        bloodGroup: 'Unknown',
+        emergencyContact: { name: 'Self', phone: patient.phone || 'N/A', relation: 'Self' }
+      });
     }
 
     const conflictingAppointment = await Appointment.findOne({
@@ -243,7 +285,7 @@ export const updateAppointmentStatus = async (req, res) => {
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
-    if (appointment.doctorId !== req.user.id) {
+    if (appointment.doctorId !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'SYSTEM_ADMIN') {
       return res.status(403).json({ error: 'You can only update your own appointments' });
     }
 
@@ -281,8 +323,9 @@ export const updateAppointmentStatus = async (req, res) => {
 
 export const getDoctorPendingAppointments = async (req, res) => {
   try {
+    const doctorId = (req.user.role === 'ADMIN' || req.user.role === 'SYSTEM_ADMIN') ? (req.query.doctorId || req.user.id) : req.user.id;
     const appointments = await Appointment.find({
-      doctorId: req.user.id,
+      doctorId: doctorId,
       status: 'PENDING',
     })
       .sort({ createdAt: -1 })
@@ -328,6 +371,9 @@ export const getAppointmentHistory = async (req, res) => {
       query.doctorId = req.user.id;
     } else if (req.user.role === 'PATIENT') {
       query.patientUserId = req.user.id;
+    } else if (req.user.role === 'ADMIN' || req.user.role === 'SYSTEM_ADMIN') {
+      if (req.query.doctorId) query.doctorId = req.query.doctorId;
+      if (req.query.patientUserId) query.patientUserId = req.query.patientUserId;
     }
 
     const appointments = await Appointment.find(query).sort({ createdAt: -1 }).lean();

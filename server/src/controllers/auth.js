@@ -16,6 +16,7 @@ const toAuthUser = (user) => ({
   doctorId: user.doctorId || null,
   specialization: user.specialization || null,
   profileImageUrl: user.profileImageUrl || null,
+  clerkId: user.clerkId || null,
 });
 
 const markPortalLogin = async (user) => {

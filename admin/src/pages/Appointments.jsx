@@ -96,10 +96,10 @@ const Appointments = () => {
                 <tbody className="divide-y divide-slate-50">
                   {appointments.map((appointment) => (
                     <tr key={appointment.id} className="hover:bg-blue-50/40 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-slate-800">
+                      <td className="px-6 py-4 font-black text-2xl text-slate-800">
                         {appointment.patient?.user?.name || 'Unknown Patient'}
                       </td>
-                      <td className="px-6 py-4 font-semibold text-slate-700">
+                      <td className="px-6 py-4 font-bold text-lg text-slate-700">
                         Dr. {appointment.doctor?.name || 'Unknown Doctor'}
                       </td>
                       <td className="px-6 py-4 text-slate-600">
@@ -152,7 +152,7 @@ const Stat = ({ title, value, icon: Icon }) => (
       </div>
     </div>
     <p className="text-sm font-semibold text-slate-500">{title}</p>
-    <h2 className="text-4xl font-extrabold text-slate-900 mt-2">{value}</h2>
+    <h2 className="text-6xl font-black text-slate-900 mt-2">{value}</h2>
   </div>
 );
 

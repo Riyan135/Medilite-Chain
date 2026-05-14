@@ -33,9 +33,8 @@ const getCloudinaryConfigErrors = () => {
 
   if (!cloudinaryConfig.api_key) {
     errors.push('CLOUDINARY_API_KEY is missing');
-  } else if (!/^\d+$/.test(cloudinaryConfig.api_key)) {
-    errors.push('CLOUDINARY_API_KEY must be the numeric API key from Cloudinary');
   }
+
 
   if (!cloudinaryConfig.api_secret) {
     errors.push('CLOUDINARY_API_SECRET is missing');
@@ -67,7 +66,7 @@ const storage =
         cloudinary,
         params: {
           folder: 'medilite_records',
-          allowed_formats: ['jpg', 'png', 'pdf', 'txt'],
+          allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'txt', 'webp'],
           resource_type: 'auto',
         },
       })

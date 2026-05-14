@@ -1,277 +1,182 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import {
-  Activity,
-  AlertTriangle,
-  BrainCircuit,
-  CheckCircle2,
-  Info,
-  Mic,
-  ShieldAlert,
-  Sparkles,
-  Stethoscope,
-  Thermometer,
-  X,
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Activity, AlertTriangle, BrainCircuit, CheckCircle2, Info, Mic, 
+  ShieldAlert, Sparkles, Stethoscope, Thermometer, X, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
 
 const SymptomChecker = () => {
   const { user } = useAuth();
-  const { memberId } = useParams();
-  const patientId = memberId || user?.id;
-  const [patientName, setPatientName] = useState(user?.name || '');
-
   const [symptoms, setSymptoms] = useState('');
-  const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [todayDate, setTodayDate] = useState('');
 
   useEffect(() => {
-    const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     setTodayDate(new Date().toLocaleDateString(undefined, options));
-    
-    if (memberId) {
-      api.get('/family').then(res => {
-        const member = res.data.find(m => m.id === memberId);
-        if (member) setPatientName(member.name);
-      }).catch(console.error);
-    } else {
-      setPatientName(user?.name || '');
-    }
-  }, [memberId, user?.name]);
-
-  const handleVoiceCommand = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      toast.error('Voice input is not supported on this browser');
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-IN';
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event) => {
-      const text = event.results[0][0].transcript;
-      setSymptoms((prev) => (prev ? `${prev} ${text}` : text));
-    };
-    recognition.onend = () => setIsListening(false);
-
-    recognition.start();
-  };
-
-  const handleClear = () => {
-    setSymptoms('');
-    setResult(null);
-  };
+  }, []);
 
   const checkSymptoms = async (e) => {
     e.preventDefault();
+    if (!symptoms.trim()) return;
     setLoading(true);
-
     try {
-      const res = await api.post('/symptoms/analyze', {
-        symptoms,
-        language: 'English',
-      });
-
-      setResult(res.data);
+      const response = await api.post('/symptoms/analyze', { symptoms, language: 'English' });
+      setResult(response.data);
       toast.success('Analysis complete');
     } catch (error) {
-      console.error(error);
       toast.error('Failed to analyze symptoms');
     } finally {
       setLoading(false);
     }
   };
 
-  const getRiskColor = (level) => {
-    const l = level?.toLowerCase();
-    if (l === 'high') return 'bg-red-100 text-red-700 border-red-200';
-    if (l === 'medium') return 'bg-orange-100 text-orange-700 border-orange-200';
-    return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+  const getUrgencyColor = (level) => {
+    switch (level?.toUpperCase()) {
+      case 'URGENT': return 'bg-rose-50 text-rose-600 border-rose-100';
+      case 'MODERATE': return 'bg-amber-50 text-amber-600 border-amber-100';
+      default: return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+    }
   };
 
   return (
-    <div className="flex h-screen bg-transparent relative overflow-hidden symptom-page-shell selection:bg-blue-600/20 selection:text-blue-900">
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-12%] right-[-6%] w-[38rem] h-[38rem] rounded-full bg-gradient-to-bl from-blue-400/18 via-indigo-300/12 to-transparent blur-[120px] animate-float" />
-        <div className="absolute bottom-[-18%] left-[-8%] w-[34rem] h-[34rem] rounded-full bg-gradient-to-tr from-cyan-300/16 via-sky-300/12 to-transparent blur-[120px] animate-[drift_18s_ease-in-out_infinite]" />
-        <div className="absolute top-[14%] left-[12%] size-20 rounded-full border border-white/40 bg-white/20 animate-[soft-spin_22s_linear_infinite]" />
-        <div className="absolute bottom-[22%] right-[16%] size-10 rounded-full bg-white/60 shadow-[0_0_34px_rgba(255,255,255,0.85)] animate-[bob_7s_ease-in-out_infinite]" />
-      </div>
-
-      <Sidebar role="patient" />
-
-      <main className="flex-1 p-8 overflow-y-auto relative z-10">
-        <header className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-10">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-blue-700 shadow-sm backdrop-blur-xl animate-slide-up-fade">
-              <Sparkles className="h-4 w-4" />
+    <div className="flex h-screen bg-[#f8fafc] font-sans selection:bg-blue-600/20 overflow-hidden">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto p-10 custom-scrollbar relative z-10">
+        <header className="mb-12 flex flex-wrap items-start justify-between gap-8 rounded-[2.25rem] border border-white/60 bg-white/70 p-10 backdrop-blur-2xl">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-black tracking-[0.4em] uppercase border border-blue-100 mb-4">
+              <Sparkles className="h-3 w-3" />
               Guided Symptom Scan
             </div>
-            <h1 className="mt-5 text-4xl md:text-5xl font-black tracking-tight text-slate-900">AI Symptom Checker</h1>
-            <p className="mt-3 max-w-2xl text-lg font-medium text-slate-500">
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">AI Symptom Checker</h1>
+            <p className="text-lg text-slate-500 font-medium leading-relaxed">
               Describe how you feel, use voice input if you want, and get a fast first-pass health insight with clearer guidance.
             </p>
           </div>
-
-          <div className="rounded-[2rem] border border-white/70 bg-white/70 px-6 py-5 shadow-xl shadow-slate-200/40 backdrop-blur-xl symptom-panel-lift">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Today</p>
-            <p className="mt-2 text-lg font-bold text-slate-900">{todayDate || 'Loading date...'}</p>
-            <p className="mt-2 text-sm text-slate-500">Patient: {patientName || 'Portal User'}</p>
+          <div className="rounded-[2rem] border border-white/70 bg-white/80 p-8 shadow-xl shadow-slate-200/50 min-w-[320px]">
+             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600 mb-2">Health Log Session</p>
+             <p className="text-2xl font-black text-slate-900 tracking-tight">{todayDate}</p>
+             <div className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Patient: {user?.name}</p>
+             </div>
           </div>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-          <QuickCard
-            icon={Thermometer}
-            title="Smart Triage"
-            body="Turn your symptom notes into a clearer risk and care suggestion."
-            tone="blue"
-          />
-          <QuickCard
-            icon={Mic}
-            title="Voice Friendly"
-            body="Speak your symptoms directly if typing feels slow or difficult."
-            tone="indigo"
-          />
-          <QuickCard
-            icon={Stethoscope}
-            title="Doctor Guidance"
-            body="See whether home care, consultation, or urgent action is suggested."
-            tone="emerald"
-          />
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          {[
+            { icon: Thermometer, title: "Smart Triage", body: "Turn your symptom notes into a clearer risk and care suggestion.", color: "blue" },
+            { icon: Mic, title: "Voice Friendly", body: "Speak your symptoms directly if typing feels slow or difficult.", color: "indigo" },
+            { icon: Stethoscope, title: "Doctor Guidance", body: "See whether home care, consultation, or urgent action is suggested.", color: "emerald" }
+          ].map((card) => (
+            <div key={card.title} className="group rounded-[2rem] border border-white/60 bg-white/75 p-10 shadow-sm transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:bg-white backdrop-blur-xl">
+              <div className={`w-16 h-16 rounded-2xl bg-${card.color}-50 flex items-center justify-center text-${card.color}-600 mb-8 shadow-inner group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500`}>
+                <card.icon size={28} />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">{card.title}</h3>
+              <p className="text-sm font-bold text-slate-400 leading-relaxed uppercase tracking-wide">{card.body}</p>
+            </div>
+          ))}
         </section>
 
-        <section className="grid grid-cols-1 gap-8">
-          <div className="rounded-[2rem] border border-white/70 bg-white/72 p-6 md:p-8 shadow-xl shadow-slate-200/40 backdrop-blur-xl animate-slide-up-fade symptom-panel-lift">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-600">Describe Symptoms</p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">Tell us what you’re feeling</h2>
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 shadow-sm">
-                <Activity className="h-6 w-6" />
-              </div>
-            </div>
+        <section className="bg-white/70 rounded-[3rem] border border-white/60 shadow-sm overflow-hidden mb-12 backdrop-blur-2xl">
+          <div className="p-10 lg:p-14">
+             <div className="mb-10">
+                <p className="text-xs font-black text-blue-600 uppercase tracking-[0.3em] mb-2">Symptom Input</p>
+                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Tell us what you're feeling</h2>
+             </div>
 
-            <form onSubmit={checkSymptoms}>
-              <div className="relative">
-                <textarea
-                  value={symptoms}
-                  onChange={(e) => setSymptoms(e.target.value)}
-                  placeholder="Example: I have fever, body pain, headache, and a dry cough since morning..."
-                  className="w-full min-h-44 resize-none rounded-[1.75rem] border border-slate-200 bg-slate-50/80 px-5 py-5 pr-30 text-slate-800 shadow-inner outline-none transition-all duration-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                />
+             <form onSubmit={checkSymptoms} className="space-y-8">
+                <div className="relative group">
+                   <textarea
+                     value={symptoms}
+                     onChange={(e) => setSymptoms(e.target.value)}
+                     placeholder="Example: I have fever, body pain, headache, and a dry cough since morning..."
+                     className="w-full min-h-[280px] p-10 rounded-[2.5rem] bg-slate-50/50 border-2 border-slate-100 text-slate-900 font-bold outline-none focus:ring-8 focus:ring-blue-600/5 focus:border-blue-500 transition-all text-lg resize-none placeholder:text-slate-300"
+                   />
+                   <div className="absolute top-10 right-10">
+                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100 shadow-sm animate-pulse">
+                         <Activity size={24} />
+                      </div>
+                   </div>
+                   <div className="absolute bottom-10 right-10 flex gap-4">
+                      <button type="button" className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white text-blue-600 border border-blue-100 hover:bg-blue-600 hover:text-white transition-all shadow-lg hover:shadow-blue-500/25">
+                         <Mic size={24} />
+                      </button>
+                      <button type="button" onClick={() => {setSymptoms(''); setResult(null);}} className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white text-slate-400 border border-slate-100 hover:bg-slate-900 hover:text-white transition-all shadow-lg">
+                         <X size={24} />
+                      </button>
+                   </div>
+                </div>
+
+                <div className="flex items-center gap-4 p-6 rounded-3xl bg-blue-50/50 text-blue-800 text-[11px] font-black uppercase tracking-[0.05em] border border-blue-100/50 leading-relaxed">
+                   <Info className="w-5 h-5 shrink-0" />
+                   Add as much detail as you can. Better descriptions usually produce a more helpful first-pass result. This tool is not for emergency diagnosis.
+                </div>
 
                 <button
-                  type="button"
-                  onClick={handleVoiceCommand}
-                  className={`absolute right-16 bottom-4 flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm transition-all duration-300 hover:-translate-y-0.5 ${
-                    isListening
-                      ? 'bg-red-100 text-red-600 animate-pulse'
-                      : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
-                  }`}
+                  type="submit"
+                  disabled={!symptoms.trim() || loading}
+                  className="w-full py-6 rounded-[1.5rem] bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 text-white font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-blue-600/30 transition-all hover:-translate-y-1 hover:shadow-blue-600/40 disabled:opacity-50 active:scale-[0.98]"
                 >
-                  <Mic size={18} />
+                  {loading ? 'Analyzing Protocol...' : 'Analyze Symptoms'}
                 </button>
+             </form>
 
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="absolute right-4 bottom-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:bg-slate-200"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+             <AnimatePresence>
+               {result && (
+                 <motion.div 
+                   initial={{ opacity: 0, y: 40 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: -20 }}
+                   className="mt-16 pt-16 border-t border-slate-100"
+                 >
+                   <div className="flex flex-col lg:flex-row gap-10">
+                      <div className="flex-1">
+                         <p className="text-xs font-black text-blue-600 uppercase tracking-[0.3em] mb-4">Clinical Insight</p>
+                         <h3 className="text-4xl font-black text-slate-900 tracking-tight mb-8">Analysis Summary</h3>
+                         <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                            <p className="text-lg font-bold text-slate-600 leading-relaxed">
+                              {result.analysis}
+                            </p>
+                         </div>
+                      </div>
 
-              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-blue-700">
-                <Info className="h-4 w-4 shrink-0" />
-                Add as much detail as you can. Better descriptions usually produce a more helpful first-pass result.
-              </div>
+                      <div className="lg:w-[400px] space-y-6">
+                         <div className={`p-8 rounded-[2rem] border-2 ${getUrgencyColor(result.urgency)}`}>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 opacity-70">Urgency Protocol</p>
+                            <div className="flex items-center gap-3">
+                               <AlertTriangle className="w-6 h-6" />
+                               <span className="text-2xl font-black tracking-tight">{result.urgency}</span>
+                            </div>
+                         </div>
 
-              <button
-                type="submit"
-                disabled={!symptoms || loading}
-                className="mt-6 w-full py-4 rounded-2xl bg-blue-600 text-white font-black text-base shadow-xl shadow-blue-600/20 transition-all duration-300 hover:-translate-y-1 hover:bg-blue-700 hover:shadow-2xl disabled:opacity-60 disabled:hover:translate-y-0 landing-button-sheen"
-              >
-                {loading ? 'Analyzing...' : 'Analyze Symptoms'}
-              </button>
-            </form>
+                         <div className="p-8 bg-indigo-50 border-2 border-indigo-100 rounded-[2rem] text-indigo-900">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 text-indigo-400">Suggested Action</p>
+                            <p className="text-xl font-black leading-tight mb-6">{result.suggestedAction}</p>
+                            <button 
+                              onClick={() => navigate('/book-appointment')}
+                              className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all"
+                            >
+                               Book Consultation
+                            </button>
+                         </div>
+                      </div>
+                   </div>
+                 </motion.div>
+               )}
+             </AnimatePresence>
           </div>
         </section>
-
-        {result && !loading && (
-          <section className="mt-8 rounded-[2rem] border border-white/70 bg-white/78 p-6 md:p-8 shadow-2xl shadow-slate-200/45 backdrop-blur-xl animate-slide-up-fade symptom-panel-lift">
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-emerald-600">Analysis Result</p>
-                <h2 className="mt-2 text-3xl font-black text-slate-900">{result.predicted_disease}</h2>
-              </div>
-              <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-black ${getRiskColor(result.risk_level)}`}>
-                <ShieldAlert className="h-4 w-4" />
-                Risk: {result.risk_level}
-              </div>
-            </div>
-
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
-              <ResultCard label="Doctor Suggestion" value={result.doctor_suggestion} icon={Stethoscope} />
-              <ResultCard label="Care Type" value={result.care_type} icon={CheckCircle2} />
-              <ResultCard label="Precautions" value={result.precautions} icon={ShieldAlert} />
-              <ResultCard label="Advice" value={result.advice} icon={BrainCircuit} />
-            </div>
-
-            <div className="mt-6 rounded-[1.5rem] border border-yellow-200 bg-yellow-50 px-5 py-4 text-sm text-yellow-900 flex gap-3">
-              <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
-              <span>{result.disclaimer}</span>
-            </div>
-          </section>
-        )}
       </main>
     </div>
   );
 };
-
-const QuickCard = ({ icon: Icon, title, body, tone }) => {
-  const tones = {
-    blue: 'from-blue-500/14 to-sky-400/10 text-blue-600',
-    indigo: 'from-indigo-500/14 to-violet-400/10 text-indigo-600',
-    emerald: 'from-emerald-500/14 to-cyan-400/10 text-emerald-600',
-  };
-
-  return (
-    <div className="rounded-[2rem] border border-white/70 bg-white/72 backdrop-blur-xl p-6 shadow-xl shadow-slate-200/35 transition-all duration-500 hover:-translate-y-1.5 symptom-panel-lift">
-      <div className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${tones[tone]} shadow-sm`}>
-        <Icon className="h-6 w-6" />
-      </div>
-      <h3 className="mt-5 text-xl font-black text-slate-900">{title}</h3>
-      <p className="mt-3 text-sm leading-7 text-slate-500">{body}</p>
-    </div>
-  );
-};
-
-const ResultCard = ({ label, value, icon: Icon }) => (
-  <div className="rounded-[1.6rem] border border-slate-100 bg-slate-50/85 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white">
-    <div className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm">
-        <Icon className="h-5 w-5" />
-      </div>
-      <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{label}</p>
-    </div>
-    <p className="mt-4 text-sm leading-7 font-medium text-slate-700">{value}</p>
-  </div>
-);
 
 export default SymptomChecker;

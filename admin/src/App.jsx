@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
@@ -14,6 +15,18 @@ import Records from './pages/Records';
 import Settings from './pages/Settings';
 import DoctorSignUpPage from './pages/DoctorSignUpPage';
 
+const PageWrapper = ({ children }) => (
+  <motion.div
+    initial={{ opacity: 0, x: 10 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: -10 }}
+    transition={{ duration: 0.3, ease: 'easeOut' }}
+    className="w-full"
+  >
+    {children}
+  </motion.div>
+);
+
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   
@@ -23,7 +36,7 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" />;
   }
   
-  return children;
+  return <PageWrapper>{children}</PageWrapper>;
 };
 
 const LoginRoute = () => {
@@ -37,80 +50,99 @@ const LoginRoute = () => {
   return <AutoLoginPage />;
 };
 
+const AnimatedRoutes = () => {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={<LoginRoute />} />
+        <Route path="/sign-up" element={<DoctorSignUpPage />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/appointments" 
+          element={
+            <ProtectedRoute>
+              <Appointments />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/consultations" 
+          element={
+            <ProtectedRoute>
+              <Consultations />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/medicines" 
+          element={
+            <ProtectedRoute>
+              <Medicines />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/patient/:id" 
+          element={
+            <ProtectedRoute>
+              <PatientDetails />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/records" 
+          element={
+            <ProtectedRoute>
+              <Records />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const App = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Toaster position="top-right" />
-        <Routes>
-          <Route path="/login" element={<LoginRoute />} />
-          <Route path="/sign-up" element={<DoctorSignUpPage />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/appointments" 
-            element={
-              <ProtectedRoute>
-                <Appointments />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/consultations" 
-            element={
-              <ProtectedRoute>
-                <Consultations />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/medicines" 
-            element={
-              <ProtectedRoute>
-                <Medicines />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/settings" 
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/patient/:id" 
-            element={
-              <ProtectedRoute>
-                <PatientDetails />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/records" 
-            element={
-              <ProtectedRoute>
-                <Records />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+        <Toaster position="top-right" gutter={8} toastOptions={{
+          style: {
+            borderRadius: '20px',
+            background: '#1e293b',
+            color: '#fff',
+            fontFamily: 'Outfit, sans-serif',
+            fontSize: '14px',
+            padding: '12px 24px',
+          }
+        }} />
+        <AnimatedRoutes />
       </BrowserRouter>
     </AuthProvider>
   );

@@ -1,5 +1,5 @@
 import express from 'express';
-import { getPatientProfile, updatePatientProfile, getDashboardStats, uploadProfilePicture, updateUserBasicInfo } from '../controllers/patient.js';
+import { getPatientProfile, updatePatientProfile, getDashboardStats, uploadProfilePicture, updateUserBasicInfo, getPublicEmergencyProfile, createAnonymousPatient } from '../controllers/patient.js';
 import { handleCloudinaryUploadError, uploadProfileImage } from '../utils/cloudinary.js';
 
 const router = express.Router();
@@ -9,5 +9,7 @@ router.put('/profile/:id', updatePatientProfile);
 router.put('/users/:id', updateUserBasicInfo);
 router.post('/profile-picture/:id', uploadProfileImage.single('profileImage'), handleCloudinaryUploadError, uploadProfilePicture);
 router.get('/stats/:id', getDashboardStats);
+router.get('/public-profile/:id', getPublicEmergencyProfile);
+router.post('/emergency-anonymous', createAnonymousPatient);
 
 export default router;

@@ -1,8 +1,9 @@
 import express from 'express';
-import { searchPatients, getPatientDetailsForDoctor, addDoctorNote, getRecentConsultations, getPatientHealthOverview, updateDoctorSignature } from '../controllers/doctor.js';
+import { searchPatients, getPatientDetailsForDoctor, addDoctorNote, getRecentConsultations, getPatientHealthOverview, updateDoctorSignature, getAllDoctorsForPatients } from '../controllers/doctor.js';
 
 const router = express.Router();
 
+router.get('/', getAllDoctorsForPatients);
 router.get('/search', searchPatients);
 router.get('/recent', getRecentConsultations);
 router.get('/patient/:id', getPatientDetailsForDoctor);

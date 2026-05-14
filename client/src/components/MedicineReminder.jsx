@@ -85,6 +85,9 @@ const MedicineReminder = () => {
       setReminders(response.data);
     } catch (error) {
       console.error('Error fetching reminders:', error);
+      if (error.response?.status === 403 && memberId) {
+        window.location.href = '/reminders';
+      }
     } finally {
       setLoading(false);
     }

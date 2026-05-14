@@ -67,6 +67,7 @@ const ConsultationEditor = ({ consultation, saving, onClose, onSave, onStart, on
     symptoms: consultation?.symptoms || '',
     diagnosis: consultation?.diagnosis || '',
     notes: consultation?.notes || '',
+    clinicalAdvice: consultation?.clinicalAdvice || '',
     consultationType: consultation?.consultationType || 'ONLINE_CHAT',
     prescription: consultation?.prescription?.length ? consultation.prescription : [emptyPrescription],
   });
@@ -76,6 +77,7 @@ const ConsultationEditor = ({ consultation, saving, onClose, onSave, onStart, on
       symptoms: consultation?.symptoms || '',
       diagnosis: consultation?.diagnosis || '',
       notes: consultation?.notes || '',
+      clinicalAdvice: consultation?.clinicalAdvice || '',
       consultationType: consultation?.consultationType || 'ONLINE_CHAT',
       prescription: consultation?.prescription?.length ? consultation.prescription : [emptyPrescription],
     });
@@ -111,12 +113,53 @@ const ConsultationEditor = ({ consultation, saving, onClose, onSave, onStart, on
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {consultation.medicalIntake && (
+            <div className="lg:col-span-2 bg-blue-50/50 dark:bg-blue-500/5 rounded-3xl p-6 border border-blue-100/50 dark:border-blue-500/10 mb-2">
+              <h3 className="text-sm font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest mb-4">Patient Intake Information</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Allergies</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{consultation.medicalIntake.allergies || 'None'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Current Meds</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{consultation.medicalIntake.currentMedicines || 'None'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Pregnancy</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{consultation.medicalIntake.pregnancyStatus || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Patient Notes</p>
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300 italic">"{consultation.notes || 'No message'}"</p>
+                </div>
+              </div>
+              {consultation.medicalIntake.pastMedicalHistory && (
+                <div className="mt-4 pt-4 border-t border-blue-100/50 dark:border-blue-500/10">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Medical History</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(consultation.medicalIntake.pastMedicalHistory)
+                      .filter(([key, val]) => val === true)
+                      .map(([key]) => (
+                        <span key={key} className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 border border-blue-100 dark:border-blue-500/20 text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase">
+                          {key.replace(/([A-Z])/g, ' $1')}
+                        </span>
+                      ))}
+                    {Object.values(consultation.medicalIntake.pastMedicalHistory).every(v => !v) && (
+                      <span className="text-xs font-medium text-slate-500 italic">No history reported</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <label className="space-y-2 group">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">Symptoms</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">Symptoms (Review)</span>
             <textarea
               value={form.symptoms}
               onChange={(event) => setForm((current) => ({ ...current, symptoms: event.target.value }))}
-              rows="4"
+              rows="3"
               className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-950/50 px-5 py-4 text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all resize-none"
             />
           </label>
@@ -125,16 +168,26 @@ const ConsultationEditor = ({ consultation, saving, onClose, onSave, onStart, on
             <textarea
               value={form.diagnosis}
               onChange={(event) => setForm((current) => ({ ...current, diagnosis: event.target.value }))}
-              rows="4"
+              rows="3"
               className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-950/50 px-5 py-4 text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all resize-none"
             />
           </label>
           <label className="space-y-2 lg:col-span-2 group">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">Doctor's Private Notes</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 transition-colors">Treatment Advice (Visible on Prescription)</span>
+            <textarea
+              value={form.clinicalAdvice}
+              onChange={(event) => setForm((current) => ({ ...current, clinicalAdvice: event.target.value }))}
+              rows="3"
+              placeholder="Enter your clinical advice and follow-up instructions here..."
+              className="w-full rounded-2xl border-2 border-blue-100 dark:border-blue-500/20 bg-blue-50/20 dark:bg-blue-500/5 px-5 py-4 text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all resize-none font-medium"
+            />
+          </label>
+          <label className="space-y-2 lg:col-span-2 group opacity-60">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">Doctor's Private Notes (Internal Only)</span>
             <textarea
               value={form.notes}
               onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-              rows="3"
+              rows="2"
               className="w-full rounded-2xl border border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-950/50 px-5 py-4 text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all resize-none"
             />
           </label>
@@ -382,7 +435,6 @@ const DoctorDashboard = () => {
       consultationId: consultation.id,
     });
   };
-
 
   return (
     <div className="flex h-screen bg-transparent dark:bg-slate-950 font-sans text-slate-900 dark:text-white transition-colors duration-300 relative overflow-hidden">

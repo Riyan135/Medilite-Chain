@@ -234,7 +234,7 @@ const Records = () => {
                     )}
                   </div>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 mt-2 mb-1 truncate">{record.title}</h3>
+                <h3 className="text-2xl font-black text-slate-900 mt-2 mb-1 truncate">{record.title}</h3>
                 <p className="text-xs text-slate-400 mb-6">{new Date(record.date).toLocaleDateString()} • Added by You</p>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">

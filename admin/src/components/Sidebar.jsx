@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ClipboardPlus, FileText, LogOut, User, ShieldCheck, Calendar, Package2, PanelLeftClose, PanelLeftOpen, Settings, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ClipboardPlus, FileText, LogOut, User, ShieldCheck, 
+  Calendar, Package2, PanelLeftClose, PanelLeftOpen, 
+  Settings, X, Heart, Globe, MapPin 
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const MediLiteLogo = ({ className = '' }) => (
@@ -25,96 +30,117 @@ const Sidebar = () => {
   };
 
   const links = [
-    { name: 'Doctor Console', icon: ShieldCheck, path: '/dashboard' },
+    { name: 'Clinical Center', icon: ShieldCheck, path: '/dashboard' },
     { name: 'Appointments', icon: Calendar, path: '/appointments' },
     { name: 'Consultations', icon: ClipboardPlus, path: '/consultations' },
-    { name: 'Patient Records', icon: FileText, path: '/records' },
-    { name: 'Stock', icon: Package2, path: '/medicines' },
-    { name: 'Profile', icon: User, path: '/profile' },
-    { name: 'Settings', icon: Settings, path: '/settings' },
+    { name: 'Health Records', icon: FileText, path: '/records' },
+    { name: 'Pharmacy Stock', icon: Package2, path: '/medicines' },
+    { name: 'Dr. Profile', icon: User, path: '/profile' },
+    { name: 'Core Settings', icon: Settings, path: '/settings' },
   ];
 
   return (
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed left-4 top-4 z-50 flex h-12 w-12 items-center justify-center rounded-2xl border border-white bg-white text-slate-700 shadow-lg md:hidden"
+        className="fixed left-4 top-4 z-50 flex h-14 w-14 items-center justify-center rounded-2xl border border-white bg-white/80 backdrop-blur-xl text-slate-700 shadow-2xl md:hidden"
       >
-        <PanelLeftOpen className="h-5 w-5" />
+        <PanelLeftOpen className="h-6 w-6" />
       </button>
 
-      {mobileOpen && <div className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-md md:hidden" 
+          onClick={() => setMobileOpen(false)} 
+        />
+      )}
 
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 transition-all duration-300 md:sticky md:z-10 ${
-          collapsed ? 'w-[92px]' : 'w-72'
-        } ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+      <motion.aside
+        animate={{ width: collapsed ? 100 : 300 }}
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-slate-200/50 dark:border-slate-800/50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl transition-all duration-300 md:sticky md:z-10 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
       >
-        <div className={`flex h-20 items-center justify-between border-b border-slate-100 dark:border-slate-800 ${collapsed ? 'px-3' : 'px-5'}`}>
-          <div className={`overflow-hidden transition-all duration-300 ${collapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-            <div className="flex items-center gap-2">
-              <MediLiteLogo />
-              <h1 className="text-2xl font-bold text-[#1d4ed8] dark:text-blue-500">MediLite</h1>
-            </div>
-          </div>
-          {collapsed && <MediLiteLogo />}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCollapsed((current) => !current)}
-              className="hidden rounded-xl p-2 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 md:inline-flex"
-            >
-              {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-            </button>
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="rounded-xl p-2 text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+        <div className={`flex h-24 items-center justify-between border-b border-slate-100 dark:border-slate-800/50 ${collapsed ? 'px-4' : 'px-7'}`}>
+          <AnimatePresence mode="wait">
+            {!collapsed && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="flex items-center gap-3"
+              >
+                <MediLiteLogo />
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">MediLite</h1>
+                  <p className="text-[10px] font-semibold text-blue-600 uppercase tracking-widest">Health Sys</p>
+                </div>
+              </motion.div>
+            )}
+            {collapsed && <MediLiteLogo />}
+          </AnimatePresence>
+          <button
+            onClick={() => setCollapsed((current) => !current)}
+            className="hidden rounded-2xl p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all md:inline-flex"
+          >
+            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          </button>
         </div>
 
-        <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-6">
+        <div className="flex-1 space-y-1 overflow-y-auto px-4 py-8">
+          {!collapsed && (
+            <p className="px-3 mb-4 text-[10px] font-semibold text-slate-400 uppercase tracking-widest opacity-70">Management</p>
+          )}
           {links.map((link) => (
             <NavLink
               key={link.name}
               to={link.path}
-              onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
-                `group flex items-center rounded-2xl px-4 py-3 transition-all ${
+                `group flex items-center rounded-2xl px-5 py-3.5 transition-all ${
                   isActive
-                    ? 'bg-gradient-to-r from-[#1d4ed8] to-blue-500 text-white shadow-lg shadow-blue-200 dark:shadow-none'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-[#f0f4f8] dark:hover:bg-slate-800/50'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
                 } ${collapsed ? 'justify-center' : ''}`
               }
             >
-              <link.icon className={`h-5 w-5 ${collapsed ? '' : 'mr-3'}`} />
-              {!collapsed && <span className="font-semibold">{link.name}</span>}
+              <link.icon className={`h-5 w-5 ${collapsed ? '' : 'mr-4'} ${collapsed ? '' : 'opacity-80'}`} />
+              {!collapsed && <span className="font-semibold text-sm tracking-tight">{link.name}</span>}
             </NavLink>
           ))}
-        </nav>
+        </div>
 
-        <div className="border-t border-slate-100 dark:border-slate-800 p-4">
-          <div className={`flex items-center rounded-2xl bg-[#f0f4f8] dark:bg-slate-800/50 px-3 py-3 ${collapsed ? 'justify-center' : ''}`}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-200 dark:border-blue-500/20 bg-blue-100 dark:bg-blue-500/10 text-sm font-black text-[#1d4ed8] dark:text-blue-400">
-              {user?.name?.[0]?.toUpperCase() || <User className="h-5 w-5" />}
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800/50">
+          {!collapsed && (
+            <div className="mb-5 px-3 flex items-center gap-2 text-slate-400">
+              <MapPin className="w-3 h-3" />
+              <span className="text-[10px] font-semibold uppercase tracking-widest">Central Hospital v2</span>
+            </div>
+          )}
+          <div className={`flex items-center rounded-2xl bg-slate-50 dark:bg-slate-900/50 p-3.5 ${collapsed ? 'justify-center' : ''}`}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-slate-800 shadow-sm text-blue-600 font-bold text-base">
+              {user?.name?.[0]?.toUpperCase()}
             </div>
             {!collapsed && (
-              <div className="ml-3 overflow-hidden">
-                <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{user?.name || 'User'}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{user?.role?.toLowerCase()} account</p>
+              <div className="ml-3 min-w-0">
+                <p className="truncate text-sm font-bold text-slate-900 dark:text-white">Dr. {user?.name?.split(' ')[0]}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-widest">Online</span>
+                </div>
               </div>
             )}
           </div>
           <button
             onClick={handleLogout}
-            className={`mt-4 flex w-full items-center rounded-2xl px-4 py-3 font-semibold text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-500/10 ${collapsed ? 'justify-center' : ''}`}
+            className={`mt-4 flex w-full items-center rounded-xl px-5 py-3 font-semibold text-xs uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all ${collapsed ? 'justify-center' : ''}`}
           >
-            <LogOut className={`h-5 w-5 ${collapsed ? '' : 'mr-3'}`} />
+            <LogOut className={`h-5 w-5 ${collapsed ? '' : 'mr-4'}`} />
             {!collapsed && <span>Sign Out</span>}
           </button>
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 };

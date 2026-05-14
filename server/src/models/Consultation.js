@@ -30,8 +30,7 @@ const medicalIntakeSchema = new mongoose.Schema(
     },
     pregnancyStatus: {
       type: String,
-      enum: ['NOT_APPLICABLE', 'NO', 'PREGNANT', 'BREASTFEEDING', 'UNSURE'],
-      default: 'NOT_APPLICABLE',
+      default: 'N/A',
     },
     reportLinks: { type: [String], default: [] },
   },
@@ -47,6 +46,7 @@ const consultationSchema = new mongoose.Schema(
     medicalIntake: { type: medicalIntakeSchema, default: null },
     diagnosis: { type: String, default: null, trim: true },
     notes: { type: String, default: null, trim: true },
+    clinicalAdvice: { type: String, default: null, trim: true },
     prescription: { type: [prescriptionItemSchema], default: [] },
     prescriptionShareToken: { type: String, default: null, index: true },
     consultationType: {

@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import AdminTopbar from '../components/AdminTopbar';
 import api from '../api/api';
+import toast from 'react-hot-toast';
 
 const OverviewCard = ({ title, value, detail, icon: Icon, tone, onClick }) => {
   const tones = {
@@ -59,6 +60,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
+  const [creatingEmergency, setCreatingEmergency] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,6 +75,27 @@ const AdminDashboard = () => {
 
     fetchData();
   }, []);
+
+  const handleEmergencyQuickAdmit = async () => {
+    if (!window.confirm('🚨 ACTIVATE EMERGENCY ADMISSION? This creates an anonymous treatment profile immediately.')) return;
+    
+    setCreatingEmergency(true);
+    try {
+      const response = await api.post('/patients/emergency-anonymous');
+      toast.success(`Emergency Profile Created: ${response.data.emergencyId}`, {
+        duration: 8000,
+        icon: '🚑'
+      });
+      // Optionally refresh the data
+      const usersRes = await api.get('/admin/users');
+      setUsers(usersRes.data);
+    } catch (error) {
+      console.error('Error creating emergency patient:', error);
+      toast.error('Critical Error: Failed to create emergency profile');
+    } finally {
+      setCreatingEmergency(false);
+    }
+  };
 
   const doctors = users.filter((user) => user.role === 'DOCTOR');
   const patients = users.filter((user) => user.role === 'PATIENT');
@@ -97,6 +120,17 @@ const AdminDashboard = () => {
           title="System Admin Overview"
           subtitle="Platform governance across access, security posture, service health, user distribution, and operational signals."
         />
+
+        <div className="mb-8 flex justify-end">
+          <button
+            onClick={handleEmergencyQuickAdmit}
+            disabled={creatingEmergency}
+            className="group flex items-center gap-3 rounded-2xl bg-rose-600 px-8 py-4 text-sm font-black text-white shadow-lg shadow-rose-200 transition-all hover:-translate-y-1 hover:bg-rose-700 active:scale-95 disabled:opacity-50"
+          >
+            <Siren className={`h-5 w-5 ${creatingEmergency ? 'animate-spin' : 'animate-pulse'}`} />
+            {creatingEmergency ? 'PROVISIONING ID...' : '🚨 EMERGENCY QUICK-ADMIT'}
+          </button>
+        </div>
 
         <section className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
           <OverviewCard title="Platform Users" value={stats?.totalUsers || 0} detail={`${patients.length} patients, ${doctors.length} doctors, ${admins.length} admins`} icon={UsersRound} tone="blue" onClick={() => navigate('/user-governance')} />

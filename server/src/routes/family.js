@@ -58,6 +58,7 @@ router.post('/', async (req, res) => {
     await PatientProfile.create({
       userId: createdUser._id.toString(),
       bloodGroup: bloodGroup || null,
+      dob: dateOfBirth || null,
     });
 
     const familyMember = {

@@ -29,16 +29,21 @@ export const uploadRecord = async (req, res) => {
   }
 
   try {
-    if (patientId !== req.user.id) {
+    if (patientId !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'SYSTEM_ADMIN' && req.user.role !== 'DOCTOR') {
       const isFamilyMember = await User.exists({ _id: patientId, parentId: req.user.id });
       if (!isFamilyMember) {
-        return res.status(403).json({ error: 'Unauthorized to upload records for this patient' });
+        if (!req.user.clerkId || patientId !== req.user.clerkId) {
+          console.log(`AUTH_DEBUG: 403 in uploadRecord. PatientId: ${patientId}, UserId: ${req.user.id}, Role: ${req.user.role}, ClerkId: ${req.user.clerkId}`);
+          return res.status(403).json({ error: 'Unauthorized to upload records for this patient' });
+        }
       }
     }
-    const patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
+    let patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
 
     if (!patientProfile) {
-      return res.status(404).json({ error: 'Patient profile not found' });
+      console.log(`Creating missing patient profile during upload for user ${patientId}`);
+      patientProfile = await PatientProfile.create({ userId: patientId });
+      patientProfile = patientProfile.toObject ? patientProfile.toObject() : patientProfile;
     }
 
     const record = await MedicalRecord.create({
@@ -62,17 +67,29 @@ export const getPatientRecords = async (req, res) => {
   const patientId = req.params.patientId || req.user.id;
 
   try {
-    if (patientId !== req.user.id) {
+    if (patientId !== req.user.id && req.user.role !== 'ADMIN' && req.user.role !== 'SYSTEM_ADMIN' && req.user.role !== 'DOCTOR') {
       const isFamilyMember = await User.exists({ _id: patientId, parentId: req.user.id });
       if (!isFamilyMember) {
-        return res.status(403).json({ error: 'Unauthorized to view records for this patient' });
+        const isSelf = patientId === req.user.id || (req.user.clerkId && patientId === req.user.clerkId);
+        if (!isSelf) {
+          console.log(`AUTH_DEBUG: 403 in getPatientRecords. PatientId: ${patientId}, UserId: ${req.user.id}, Role: ${req.user.role}, ClerkId: ${req.user.clerkId}`);
+          return res.status(403).json({ error: 'Unauthorized to view records for this patient' });
+        }
       }
     }
 
-    const patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
+    let patientProfile = await PatientProfile.findOne({ userId: patientId }).lean();
 
     if (!patientProfile) {
-      return res.status(404).json({ error: 'Patient profile not found' });
+      console.log(`[LAZY_PROFILE_RECORDS] Profile missing for user ${patientId}. Attempting creation...`);
+      try {
+        patientProfile = await PatientProfile.create({ userId: patientId });
+        console.log(`[LAZY_PROFILE_RECORDS] Successfully created profile for user ${patientId}`);
+        patientProfile = patientProfile.toObject ? patientProfile.toObject() : patientProfile;
+      } catch (createErr) {
+        console.error(`[LAZY_PROFILE_RECORDS] Failed to create profile for user ${patientId}:`, createErr);
+        patientProfile = { userId: patientId };
+      }
     }
 
     const records = await MedicalRecord.find({ patientUserId: patientId }).sort({ date: -1 }).lean();
@@ -152,10 +169,14 @@ export const getHealthOverview = async (req, res) => {
   const targetUserId = patientId || req.user.id;
 
   try {
-    if (targetUserId !== req.user.id) {
+    if ((req.user.role === 'PATIENT' || req.user.role === 'DOCTOR') && req.user.id !== targetUserId) {
       const isFamilyMember = await User.exists({ _id: targetUserId, parentId: req.user.id });
       if (!isFamilyMember) {
-        return res.status(403).json({ error: 'Unauthorized to generate overview for this patient' });
+        const isSelf = targetUserId === req.user.id || (req.user.clerkId && targetUserId === req.user.clerkId);
+        if (!isSelf && req.user.role === 'PATIENT') {
+           console.log(`AUTH_DEBUG: 403 in getHealthOverview. targetUserId: ${targetUserId}, UserId: ${req.user.id}, Role: ${req.user.role}, ClerkId: ${req.user.clerkId}`);
+           return res.status(403).json({ error: 'Unauthorized to generate overview for this patient' });
+        }
       }
     }
 

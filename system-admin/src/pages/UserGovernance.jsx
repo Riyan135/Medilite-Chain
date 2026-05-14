@@ -50,6 +50,7 @@ const UserGovernance = () => {
     }
   };
 
+
   const doctors = users.filter((user) => user.role === 'DOCTOR');
   const patients = users.filter((user) => user.role === 'PATIENT');
   const admins = users.filter((user) => user.role === 'ADMIN');

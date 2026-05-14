@@ -24,7 +24,7 @@ const wrapText = (value, maxChars) => {
     lines.push(line);
   }
 
-  return lines.length ? lines.slice(0, 3) : ['-'];
+  return lines.length ? lines.slice(0, 10) : ['-'];
 };
 
 const formatHistory = (history = {}) =>
@@ -57,10 +57,13 @@ export const buildPrescriptionPdf = (consultation) => {
     raw(`${width} w ${color} ${x1} ${y1} m ${x2} ${y2} l S`);
   };
 
-  // Watermark (rotated 45 deg, very light gray/blue)
-  raw('0.97 0.98 0.99 rg'); // VERY light blue/gray
-  raw('BT /F2 100 Tf 0.707 0.707 -0.707 0.707 100 200 Tm (MEDILITE) Tj ET');
-  raw('BT /F2 100 Tf 0.707 0.707 -0.707 0.707 200 100 Tm (MEDILITE) Tj ET');
+  // Watermark (Multiple, rotated, very light)
+  raw('0.98 0.98 0.99 rg'); // Ultra light blue
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      raw(`BT /F2 40 Tf 0.707 0.707 -0.707 0.707 ${i * 200 - 50} ${j * 250 - 100} Tm (MEDILITE) Tj ET`);
+    }
+  }
 
   // Top Accent Banner
   rect(0, 832, pageWidth, 10, null, '0.15 0.39 0.92');
@@ -137,18 +140,18 @@ export const buildPrescriptionPdf = (consultation) => {
   text(430, 463, 'INSTRUCTIONS', 7, 'F2', '0.4 0.45 0.5 rg');
 
   const rows = consultation.prescription?.length ? consultation.prescription : [];
-  const rowHeight = 24;
+  const rowHeight = 28; // Increased height for better readability
   
   rows.slice(0, 10).forEach((item, index) => {
     const y = 431 - index * rowHeight;
     // Row separator
-    line(48, y - 6, 547, y - 6, '0.92 0.94 0.96 RG', 0.5);
+    line(48, y - 6, 547, y - 6, '0.94 0.96 0.98 RG', 0.5);
     
     text(58, y + 2, String(index + 1), 8, 'F1', '0.4 0.45 0.5 rg');
-    text(86, y + 2, item.medicine || '-', 9, 'F2', '0.1 0.15 0.25 rg');
-    text(240, y + 2, item.dosage || '-', 8, 'F1', '0.2 0.25 0.3 rg');
-    text(350, y + 2, item.duration || '-', 8, 'F1', '0.2 0.25 0.3 rg');
-    text(430, y + 2, item.instructions || '-', 8, 'F1', '0.2 0.25 0.3 rg');
+    text(86, y + 2, item.medicine || '-', 10, 'F2', '0.1 0.15 0.25 rg');
+    text(240, y + 2, item.dosage || '-', 9, 'F1', '0.2 0.25 0.3 rg');
+    text(350, y + 2, item.duration || '-', 9, 'F1', '0.2 0.25 0.3 rg');
+    text(430, y + 2, item.instructions || '-', 9, 'F1', '0.2 0.25 0.3 rg');
   });
 
   if (!rows.length) {
@@ -156,26 +159,34 @@ export const buildPrescriptionPdf = (consultation) => {
     text(58, 433, 'No medicines prescribed.', 9, 'F3', '0.5 0.5 0.5 rg');
   }
 
-  // Doctor Notes Section
-  text(48, 200, 'Doctor Notes & Advice', 11, 'F2', '0.15 0.39 0.92 rg');
-  wrapText(consultation.notes || 'No specific advice recorded.', 65).forEach((item, index) => {
-    text(48, 180 - index * 14, item, 9, 'F1', '0.2 0.25 0.3 rg');
+  // Doctor Notes & Advice (Moved even lower to Bottom Left)
+  const adviceY = 140;
+  text(48, adviceY + 20, 'DOCTOR ADVICE & FOLLOW-UP', 8, 'F2', '0.15 0.39 0.92 rg');
+  line(48, adviceY + 15, 280, adviceY + 15, '0.15 0.39 0.92 RG', 1.5);
+  
+  const adviceLines = wrapText(consultation.clinicalAdvice || consultation.notes || 'No specific clinical advice recorded.', 55);
+  adviceLines.forEach((item, index) => {
+    text(48, adviceY - index * 13, item, 9, 'F1', '0.2 0.25 0.3 rg');
   });
 
   // Signatures
-  // Digital Signature
-  text(380, 160, doctor.digitalSignatureName || `Dr. ${doctor.name || '-'}`, 18, 'F3', '0.1 0.2 0.4 rg');
-  line(370, 150, 540, 150, '0.85 0.88 0.92 RG', 1);
-  text(380, 138, doctor.digitalSignatureName || `Dr. ${doctor.name || '-'}`, 9, 'F2');
-  text(380, 126, doctor.specialization || 'Doctor', 8, 'F1', '0.4 0.4 0.4 rg');
-  text(380, 114, `License: ${doctor.medicalLicenseNumber || 'Not provided'}`, 8, 'F1', '0.4 0.4 0.4 rg');
+  // Digital Signature (Moved to Right)
+  const signY = 160;
+  text(380, signY, doctor.digitalSignatureName || `Dr. ${doctor.name || '-'}`, 18, 'F3', '0.1 0.2 0.4 rg');
+  line(370, signY - 10, 540, signY - 10, '0.85 0.88 0.92 RG', 1);
+  text(380, signY - 22, doctor.digitalSignatureName || `Dr. ${doctor.name || '-'}`, 9, 'F2', '0.1 0.15 0.2 rg');
+  text(380, signY - 34, doctor.specialization || 'Consultant Physician', 8, 'F1', '0.4 0.4 0.4 rg');
+  
+  if (doctor.medicalLicenseNumber && !doctor.medicalLicenseNumber.toLowerCase().includes('not provided')) {
+    text(380, signY - 46, `Reg No: ${doctor.medicalLicenseNumber}`, 8, 'F1', '0.4 0.4 0.4 rg');
+  }
 
   // Footer
   line(48, 70, 547, 70, '0.9 0.92 0.95 RG', 1);
   text(48, 55, 'This is a digitally generated prescription from the MediLite platform. It is valid without a physical signature.', 7, 'F1', '0.5 0.55 0.6 rg');
-  text(48, 45, 'For verification or queries, please contact your healthcare provider directly.', 7, 'F1', '0.5 0.55 0.6 rg');
+  text(48, 45, 'The treatment advice given here is based on the clinical consultation provided via TeleHealth.', 7, 'F1', '0.5 0.55 0.6 rg');
 
-  const stream = lines.join('\\n');
+  const stream = lines.join('\n');
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
@@ -183,21 +194,21 @@ export const buildPrescriptionPdf = (consultation) => {
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic >>',
-    `<< /Length ${Buffer.byteLength(stream)} >>\\nstream\\n${stream}\\nendstream`,
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
   ];
 
-  let pdf = '%PDF-1.4\\n';
+  let pdf = '%PDF-1.4\n';
   const offsets = [0];
   objects.forEach((object, index) => {
     offsets.push(Buffer.byteLength(pdf));
-    pdf += `${index + 1} 0 obj\\n${object}\\nendobj\\n`;
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
   });
   const xrefOffset = Buffer.byteLength(pdf);
-  pdf += `xref\\n0 ${objects.length + 1}\\n0000000000 65535 f \\n`;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
   offsets.slice(1).forEach((offset) => {
-    pdf += `${String(offset).padStart(10, '0')} 00000 n \\n`;
+    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
   });
-  pdf += `trailer\\n<< /Size ${objects.length + 1} /Root 1 0 R >>\\nstartxref\\n${xrefOffset}\\n%%EOF`;
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
   return Buffer.from(pdf, 'binary');
 };

@@ -132,13 +132,19 @@ const MedicalRecordUpload = ({ targetId, onClose, initialType = 'REPORT' }) => {
             <select 
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-slate-900"
+              disabled={!!initialType}
+              className={`w-full px-4 py-3 rounded-xl border border-slate-200 outline-none transition-all text-slate-900 ${!!initialType ? 'bg-slate-50 cursor-not-allowed opacity-70' : 'focus:ring-2 focus:ring-primary/20 focus:border-primary'}`}
             >
               <option value="REPORT">Medical Report</option>
               <option value="BILL">Hospital Bill</option>
               <option value="PRESCRIPTION">Prescription</option>
               <option value="LAB_TEST">Lab Test Result</option>
             </select>
+            {!!initialType && (
+              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">
+                Category Locked: {type.replace('_', ' ')}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

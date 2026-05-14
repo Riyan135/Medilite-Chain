@@ -25,6 +25,7 @@ export const authMiddleware = async (req, res, next) => {
       patientProfile,
     };
 
+
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);

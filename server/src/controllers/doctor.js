@@ -185,3 +185,21 @@ export const getPatientHealthOverview = async (req, res) => {
     res.status(500).json({ error: 'Failed to generate health overview' });
   }
 };
+
+export const getAllDoctorsForPatients = async (req, res) => {
+  try {
+    const doctors = await User.find({ role: 'DOCTOR' }).sort({ name: 1 }).lean();
+    res.status(200).json(
+      doctors.map((doctor) => ({
+        id: doctor._id.toString(),
+        name: doctor.name,
+        email: doctor.email,
+        phone: doctor.phone || null,
+        specialization: doctor.specialization || 'General Physician',
+      }))
+    );
+  } catch (error) {
+    console.error('Error fetching doctors for patients:', error);
+    res.status(500).json({ error: 'Failed to fetch specialists' });
+  }
+};

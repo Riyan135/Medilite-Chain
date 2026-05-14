@@ -255,21 +255,24 @@ const FamilyProfiles = () => {
                       placeholder="Auto calculated"
                     />
                   </div>
-                  <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-700">Blood Group</label>
-                    <input
-                      required
-                      list="blood-group-options"
-                      value={formData.bloodGroup}
-                      onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value.toUpperCase() })}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 font-medium text-slate-900 outline-none transition-all focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10"
-                      placeholder="Select or type"
-                    />
-                    <datalist id="blood-group-options">
-                      {BLOOD_GROUP_OPTIONS.map((group) => (
-                        <option key={group} value={group} />
+                  <div className="col-span-2">
+                    <label className="mb-3 block text-xs font-bold uppercase tracking-widest text-slate-700">Blood Group Selection</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {BLOOD_GROUP_OPTIONS.map((bg) => (
+                        <button
+                          key={bg}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, bloodGroup: bg })}
+                          className={`py-3 rounded-xl text-xs font-black transition-all ${
+                            formData.bloodGroup === bg
+                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                              : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100'
+                          }`}
+                        >
+                          {bg}
+                        </button>
                       ))}
-                    </datalist>
+                    </div>
                   </div>
                 </div>
 
