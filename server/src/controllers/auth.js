@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import PatientProfile from '../models/PatientProfile.js';
 import { sendDoctorIdEmail, sendOtpEmail } from '../services/mailer.js';
+import { generatePatientQR } from './patient.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_fallback_secret_for_dev_only';
 
@@ -116,6 +117,7 @@ export const register = async (req, res) => {
       userId: user._id.toString(),
       bloodGroup: bloodGroup || null,
       consultingDoctorId: null,
+      qrCode: await generatePatientQR(user._id.toString()),
     });
 
     const token = buildPortalToken(user);
@@ -370,7 +372,7 @@ export const requestDoctorSignupOtp = async (req, res) => {
 
     await sendOtpEmail({
       to: email,
-      name,
+      name: name,
       otp,
     });
 
@@ -577,6 +579,7 @@ export const verifyOtp = async (req, res) => {
         userId: user._id.toString(),
         bloodGroup: null,
         consultingDoctorId: null,
+        qrCode: await generatePatientQR(user._id.toString()),
       });
     } else {
       user.name = normalizedName;
@@ -686,7 +689,12 @@ export const syncUser = async (req, res) => {
     if (user.role === 'PATIENT') {
       await PatientProfile.updateOne(
         { userId: user._id.toString() },
-        { $setOnInsert: { userId: user._id.toString() } },
+        { 
+          $setOnInsert: { 
+            userId: user._id.toString(),
+            qrCode: await generatePatientQR(user._id.toString())
+          } 
+        },
         { upsert: true }
       );
     }

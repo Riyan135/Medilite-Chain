@@ -1,4 +1,6 @@
+import QRCode from 'qrcode';
 import PatientProfile from '../models/PatientProfile.js';
+
 import User from '../models/User.js';
 import MedicalRecord from '../models/MedicalRecord.js';
 
@@ -24,6 +26,25 @@ const attachConsultingDoctor = async (profile) => {
   return result;
 };
 
+export const generatePatientQR = async (userId) => {
+  try {
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const scanUrl = `${clientUrl}/scan/${userId}`;
+    const qrDataUrl = await QRCode.toDataURL(scanUrl, {
+      color: {
+        dark: '#2563eb', // Blue-600
+        light: '#ffffff'
+      },
+      margin: 2,
+      width: 400
+    });
+    return qrDataUrl;
+  } catch (error) {
+    console.error('Error generating patient QR:', error);
+    return null;
+  }
+};
+
 export const getPatientProfile = async (req, res) => {
   const id = req.params.id || req.user.id;
 
@@ -47,13 +68,21 @@ export const getPatientProfile = async (req, res) => {
     if (!patientProfile) {
       console.log(`[LAZY_PROFILE] Profile missing for user ${id}. Attempting creation...`);
       try {
-        patientProfile = await PatientProfile.create({ userId: id });
+        const qrCode = await generatePatientQR(id);
+        patientProfile = await PatientProfile.create({ userId: id, qrCode });
         console.log(`[LAZY_PROFILE] Successfully created profile for user ${id}`);
         patientProfile = patientProfile.toObject ? patientProfile.toObject() : patientProfile;
       } catch (createErr) {
         console.error(`[LAZY_PROFILE] Failed to create profile for user ${id}:`, createErr);
         // Fallback to a temporary object to avoid 404 if creation fails
         patientProfile = { userId: id };
+      }
+    } else if (!patientProfile.qrCode) {
+      // Lazy generation for existing profiles without QR
+      const qrCode = await generatePatientQR(id);
+      if (qrCode) {
+        await PatientProfile.updateOne({ userId: id }, { $set: { qrCode } });
+        patientProfile.qrCode = qrCode;
       }
     }
 

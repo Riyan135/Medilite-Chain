@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { QRCodeSVG } from 'qrcode.react';
-import { Camera, Download, Share2, User, Mail, Phone, Droplet, IdCard, BadgeCheck, ShieldCheck, Calendar } from 'lucide-react';
+import { Camera, Download, Share2, User, Mail, Phone, Droplet, IdCard, BadgeCheck, ShieldCheck, Calendar, QrCode } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/api';
@@ -182,6 +183,34 @@ const QRProfile = () => {
               <ProfileInfo icon={Calendar} label="Date of Birth" value={profile?.dob ? new Date(profile.dob).toLocaleDateString() : 'Not set'} tone="indigo" />
               <ProfileInfo icon={Droplet} label="Blood Group" value={profile?.bloodGroup || 'Not set'} tone="rose" />
               <ProfileInfo icon={IdCard} label="Patient ID" value={patientId ? `#${patientId.slice(-8).toUpperCase()}` : 'Not available'} />
+            </div>
+
+            <div className="w-full mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <QrCode className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">
+                  {memberId ? `${patientName}'s Medical Scanner` : 'Your Medical Scanner'}
+                </h3>
+              </div>
+              <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-3xl p-8 border border-indigo-100 flex flex-col items-center shadow-inner relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                <div className="bg-white p-4 rounded-[2rem] shadow-2xl shadow-indigo-200 border border-white relative z-10 group transition-transform duration-500 hover:scale-105">
+                  {profile?.qrCode ? (
+                    <img src={profile.qrCode} alt="Medical Scanner" className="w-48 h-48 rounded-2xl" />
+                  ) : scanUrl ? (
+                    <QRCodeSVG value={scanUrl} size={192} level="H" includeMargin />
+                  ) : (
+                    <div className="w-48 h-48 bg-slate-100 animate-pulse rounded-2xl" />
+                  )}
+                </div>
+                <p className="mt-6 text-xs font-bold text-slate-500 text-center max-w-[200px] leading-relaxed">
+                  Doctors can scan this code to instantly access your medical history and emergency details.
+                </p>
+                <div className="mt-4 flex items-center gap-2 bg-indigo-600/10 px-3 py-1.5 rounded-full border border-indigo-600/20">
+                  <ShieldCheck className="h-3.5 w-3.5 text-indigo-600" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-700">Encrypted Profile Access</span>
+                </div>
+              </div>
             </div>
 
             <button

@@ -1,4 +1,5 @@
-import { PlusCircle, ArrowUpRight, Shield, Heart, FileText, Pill, MessageSquare, AlertTriangle, User, CalendarClock, Users, Pencil } from 'lucide-react';
+import { PlusCircle, ArrowUpRight, Shield, Heart, FileText, Pill, MessageSquare, AlertTriangle, User, CalendarClock, Users, Pencil, QrCode } from 'lucide-react';
+
 import MedicalRecordUpload from '../components/MedicalRecordUpload';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -574,8 +575,26 @@ const PatientDashboard = () => {
           <aside className="space-y-8 animate-slide-up-fade" style={{animationDelay: '0.2s'}}>
             <section className="patient-dashboard-panel group relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-indigo-600 to-blue-700 p-8 text-white shadow-2xl shadow-indigo-900/20 transition-all duration-500 hover:-translate-y-1 hover:shadow-indigo-900/40">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-[60px] translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-700"></div>
-              <h3 className="text-xl font-black mb-4 tracking-tight relative z-10">Emergency Profile</h3>
-              <p className="text-sm text-indigo-100 mb-8 font-medium leading-relaxed relative z-10">In case of emergency, doctors can access this info securely via your QR code.</p>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-black tracking-tight relative z-10">Emergency Profile</h3>
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur relative z-10">
+                   <QrCode className="w-5 h-5" />
+                </div>
+              </div>
+              <p className="text-sm text-indigo-100 mb-6 font-medium leading-relaxed relative z-10">In case of emergency, doctors can access this info securely via your QR code.</p>
+              
+              <div className="mb-6 flex justify-center relative z-10">
+                <div className="p-3 bg-white rounded-3xl shadow-xl shadow-indigo-900/40 border border-indigo-400/20 group-hover:scale-105 transition-transform duration-500">
+                  {profile?.qrCode ? (
+                    <img src={profile.qrCode} alt="Medical QR" className="w-32 h-32 rounded-xl" />
+                  ) : (
+                    <div className="w-32 h-32 bg-indigo-50/10 rounded-xl flex items-center justify-center animate-pulse border border-white/10">
+                      <QrCode className="w-12 h-12 text-white/30" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-4 relative z-10">
                 <div className="flex justify-between text-sm py-3 border-b border-indigo-400/30">
                   <span className="text-indigo-200 font-semibold tracking-wide uppercase text-xs">Blood Group</span>
@@ -583,7 +602,7 @@ const PatientDashboard = () => {
                 </div>
                 <div className="flex justify-between text-sm py-3 border-b border-indigo-400/30">
                   <span className="text-indigo-200 font-semibold tracking-wide uppercase text-xs">Allergies</span>
-                  <span className="font-black">{loading ? "..." : profile?.allergies || "None"}</span>
+                  <span className="font-black truncate max-w-[120px] text-right">{loading ? "..." : profile?.allergies || "None"}</span>
                 </div>
                 <div className="flex justify-between text-sm py-3 border-b border-indigo-400/30">
                   <span className="text-indigo-200 font-semibold tracking-wide uppercase text-xs">Date of Birth</span>

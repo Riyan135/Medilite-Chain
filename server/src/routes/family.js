@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import PatientProfile from '../models/PatientProfile.js';
+import { generatePatientQR } from '../controllers/patient.js';
 
 const router = express.Router();
 
@@ -59,6 +60,7 @@ router.post('/', async (req, res) => {
       userId: createdUser._id.toString(),
       bloodGroup: bloodGroup || null,
       dob: dateOfBirth || null,
+      qrCode: await generatePatientQR(createdUser._id.toString()),
     });
 
     const familyMember = {
