@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ClipboardPlus, FileText, LogOut, User, ShieldCheck, 
   Calendar, Package2, PanelLeftClose, PanelLeftOpen, 
-  Settings, X, Heart, Globe, MapPin 
+  Settings, X, Heart, Globe, MapPin, QrCode
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -34,6 +34,7 @@ const Sidebar = () => {
     { name: 'Appointments', icon: Calendar, path: '/appointments' },
     { name: 'Consultations', icon: ClipboardPlus, path: '/consultations' },
     { name: 'Health Records', icon: FileText, path: '/records' },
+    { name: 'Scan Patient', icon: QrCode, path: '/scan' },
     { name: 'Pharmacy Stock', icon: Package2, path: '/medicines' },
     { name: 'Dr. Profile', icon: User, path: '/profile' },
     { name: 'Core Settings', icon: Settings, path: '/settings' },

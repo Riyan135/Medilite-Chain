@@ -5,7 +5,7 @@ import AdminTopbar from '../components/AdminTopbar';
 import { 
   Users, UserCheck, ShieldAlert, BarChart3, ArrowRight, Trash2, 
   ShieldCheck, MessageSquare, Pill, User, Calendar, ClipboardList, 
-  Phone, Video, Package2, AlertTriangle, Activity, Zap, Star
+  Phone, Video, Package2, AlertTriangle, Activity, Zap, Star, QrCode
 } from 'lucide-react';
 import api from '../api/api';
 import Chat from '../components/Chat';
@@ -233,6 +233,46 @@ const AdminDashboard = () => {
             index={3}
           />
         </motion.section>
+
+        {/* Quick Actions */}
+        <motion.div
+          variants={itemVariants}
+          initial="hidden"
+          animate="visible"
+          className="mb-12"
+        >
+          <div 
+            onClick={() => navigate('/scan')}
+            className="group relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[3rem] p-10 cursor-pointer shadow-2xl shadow-blue-600/20 hover:scale-[1.01] transition-all"
+          >
+            <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+              <QrCode className="w-48 h-48 text-white" />
+            </div>
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center">
+                    <ShieldCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-100">Clinical Protocol v2.4</span>
+                </div>
+                <h3 className="text-4xl font-black text-white mb-3">Scan Patient Record</h3>
+                <p className="text-blue-100 font-medium max-w-xl leading-relaxed">
+                  Instantly access patient clinical history, AI-summarized health overviews, and encrypted medical records by scanning their MediLite QR code.
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right hidden sm:block">
+                  <p className="text-white font-black text-xl">Launch Scanner</p>
+                  <p className="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-70">Requires Camera Access</p>
+                </div>
+                <div className="w-16 h-16 rounded-[2rem] bg-white text-blue-600 flex items-center justify-center shadow-xl group-hover:translate-x-2 transition-transform">
+                  <ArrowRight className="w-8 h-8" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-8">
           <motion.section 

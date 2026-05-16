@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import Records from './pages/Records';
 import Settings from './pages/Settings';
 import DoctorSignUpPage from './pages/DoctorSignUpPage';
+import DoctorScanner from './pages/DoctorScanner';
 
 const PageWrapper = ({ children }) => (
   <motion.div
@@ -119,6 +120,14 @@ const AnimatedRoutes = () => {
           element={
             <ProtectedRoute>
               <Records />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/scan" 
+          element={
+            <ProtectedRoute>
+              <DoctorScanner />
             </ProtectedRoute>
           } 
         />

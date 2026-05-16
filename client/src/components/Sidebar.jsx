@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { 
   LayoutGrid, FileText, Bell, Clock, LogOut, User, Pill, 
-  Activity, AlertTriangle, Calendar, ClipboardPlus, Globe
+  Activity, AlertTriangle, Calendar, ClipboardPlus, Globe, QrCode
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -23,7 +23,7 @@ const Sidebar = () => {
     return basePath;
   };
 
-  const links = [
+  const patientLinks = [
     { name: 'Dashboard', icon: LayoutGrid, path: buildPath('/dashboard') },
     { name: 'Book Appointment', icon: Calendar, path: buildPath('/book-appointment') },
     { name: 'Consultations', icon: ClipboardPlus, path: buildPath('/consultations') },
@@ -33,6 +33,14 @@ const Sidebar = () => {
     { name: 'Timeline', icon: Clock, path: buildPath('/timeline') },
     { name: 'My Profile', icon: User, path: buildPath('/qr') },
   ];
+
+  const doctorLinks = [
+    { name: 'Medical Dashboard', icon: LayoutGrid, path: '/doctor-dashboard' },
+    { name: 'Patient Scanner', icon: QrCode, path: '/doctor/scanner' },
+    { name: 'Consultations', icon: ClipboardPlus, path: '/doctor-dashboard' }, // Placeholder or specific route if available
+  ];
+
+  const links = user?.role === 'DOCTOR' ? doctorLinks : patientLinks;
 
   return (
     <div className="flex h-screen w-64 flex-col border-r border-slate-200 bg-white z-50">

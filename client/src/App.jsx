@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import PatientDashboard from './pages/PatientDashboard';
-import DoctorDashboard from './pages/DoctorDashboard';
 import PatientDetails from './pages/PatientDetails';
 import HealthTimeline from './pages/HealthTimeline';
 import MedicineReminders from './pages/MedicineReminders';
@@ -199,23 +198,8 @@ function App() {
             }
           />
 
-          {/* Doctor Routes */}
-          <Route
-            path="/doctor-dashboard"
-            element={
-              <PrivateRoute allowedRoles={['DOCTOR']}>
-                <DoctorDashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/doctor/patient/:id"
-            element={
-              <PrivateRoute allowedRoles={['DOCTOR']}>
-                <PatientDetails />
-              </PrivateRoute>
-            }
-          />
+          {/* Scan Redirect Route */}
+
 
 
           {/* Scan Redirect Route */}
@@ -223,7 +207,6 @@ function App() {
           
           {/* Public Emergency Profile */}
           <Route path="/emergency-profile/:id" element={<PublicEmergencyProfile />} />
-
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
