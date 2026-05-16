@@ -209,7 +209,7 @@ function App() {
             }
           />
           <Route
-            path="/doctor/patient/:clerkId"
+            path="/doctor/patient/:id"
             element={
               <PrivateRoute allowedRoles={['DOCTOR']}>
                 <PatientDetails />

@@ -19,6 +19,7 @@ const QRProfile = () => {
   const [scanUrl, setScanUrl] = useState('');
   const [patientName, setPatientName] = useState(user?.name || '');
   const [patientId, setPatientId] = useState(user?.id);
+  const [targetUser, setTargetUser] = useState(null);
 
   useEffect(() => {
     const idToUse = memberId || user?.id;
@@ -45,6 +46,7 @@ const QRProfile = () => {
     try {
       const response = await api.get(`/patients/profile/${id}`);
       setProfile(response.data.patientProfile);
+      setTargetUser(response.data);
       if (response.data.profileImageUrl) {
         setProfilePhoto(response.data.profileImageUrl);
         localStorage.setItem(`medilite_profile_photo_${id}`, response.data.profileImageUrl);
@@ -177,9 +179,9 @@ const QRProfile = () => {
             </div>
 
             <div className="mb-8 grid w-full gap-3">
-              <ProfileInfo icon={User} label="Full Name" value={patientName || 'Not provided'} />
-              <ProfileInfo icon={Mail} label="Email Address" value={user?.email || 'Not provided'} />
-              <ProfileInfo icon={Phone} label="Phone Number" value={user?.phone || 'Not provided'} />
+              <ProfileInfo icon={User} label="Full Name" value={targetUser?.name || patientName || 'Not provided'} />
+              <ProfileInfo icon={Mail} label="Email Address" value={targetUser?.email || 'Not provided'} />
+              <ProfileInfo icon={Phone} label="Phone Number" value={targetUser?.phone || 'Not provided'} />
               <ProfileInfo icon={Calendar} label="Date of Birth" value={profile?.dob ? new Date(profile.dob).toLocaleDateString() : 'Not set'} tone="indigo" />
               <ProfileInfo icon={Droplet} label="Blood Group" value={profile?.bloodGroup || 'Not set'} tone="rose" />
               <ProfileInfo icon={IdCard} label="Patient ID" value={patientId ? `#${patientId.slice(-8).toUpperCase()}` : 'Not available'} />
@@ -223,7 +225,7 @@ const QRProfile = () => {
                   <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-100">Medical ID Card</p>
                   <h3 className="mt-2 text-xl font-black">{patientName || 'Patient'}</h3>
                   <p className="mt-1 text-xs font-bold text-blue-100">
-                    {profile?.bloodGroup || 'Blood group not set'} â€¢ {user?.phone || 'Phone not provided'}
+                    {profile?.bloodGroup || 'Blood group not set'} • {targetUser?.phone || 'Phone not provided'}
                   </p>
                 </div>
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/18 backdrop-blur">
@@ -277,7 +279,7 @@ const QRProfile = () => {
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-1.5">Email Address</p>
                   <div className="flex items-center text-slate-700 text-[13px] font-medium">
                     <Mail className="w-3.5 h-3.5 mr-2.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{user?.email}</span>
+                    <span className="truncate">{targetUser?.email}</span>
                   </div>
                 </div>
                 
@@ -285,7 +287,7 @@ const QRProfile = () => {
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em] mb-1.5">Phone Number</p>
                   <div className="flex items-center text-slate-700 text-[13px] font-medium">
                     <Phone className="w-3.5 h-3.5 mr-2.5 text-slate-400 shrink-0" />
-                    {user?.phone || 'Not provided'}
+                    {targetUser?.phone || 'Not provided'}
                   </div>
                 </div>
 
