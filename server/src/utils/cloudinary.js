@@ -110,6 +110,28 @@ export const handleCloudinaryUploadError = (error, req, res, next) => {
   res.status(500).json({ error: message });
 };
 
+export const uploadQR = async (base64Image, userId) => {
+  if (cloudinaryConfigErrors.length > 0) {
+    throw new Error('Cloudinary not configured');
+  }
+
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(
+      base64Image,
+      {
+        folder: 'medilite_qrcodes',
+        public_id: `qr_${userId}`,
+        resource_type: 'image',
+        overwrite: true,
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    );
+  });
+};
+
 export const upload = storage ? multer({ storage }) : unavailableUpload;
 export const uploadProfileImage = profileImageStorage ? multer({ storage: profileImageStorage }) : unavailableUpload;
 export default cloudinary;

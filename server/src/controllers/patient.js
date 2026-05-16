@@ -3,6 +3,7 @@ import PatientProfile from '../models/PatientProfile.js';
 
 import User from '../models/User.js';
 import MedicalRecord from '../models/MedicalRecord.js';
+import { uploadQR } from '../utils/cloudinary.js';
 
 const attachConsultingDoctor = async (profile) => {
   if (!profile) {
@@ -38,7 +39,10 @@ export const generatePatientQR = async (userId) => {
       margin: 2,
       width: 400
     });
-    return qrDataUrl;
+
+    // Upload to Cloudinary for permanent storage
+    const cloudinaryUrl = await uploadQR(qrDataUrl, userId);
+    return cloudinaryUrl;
   } catch (error) {
     console.error('Error generating patient QR:', error);
     return null;
@@ -77,8 +81,8 @@ export const getPatientProfile = async (req, res) => {
         // Fallback to a temporary object to avoid 404 if creation fails
         patientProfile = { userId: id };
       }
-    } else if (!patientProfile.qrCode) {
-      // Lazy generation for existing profiles without QR
+    } else if (!patientProfile.qrCode || patientProfile.qrCode.startsWith('data:image')) {
+      // Lazy generation for missing QR or migration from legacy Base64 to Cloudinary
       const qrCode = await generatePatientQR(id);
       if (qrCode) {
         await PatientProfile.updateOne({ userId: id }, { $set: { qrCode } });

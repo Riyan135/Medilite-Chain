@@ -198,11 +198,11 @@ const QRProfile = () => {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
                 <div className="bg-white p-4 rounded-[2rem] shadow-2xl shadow-indigo-200 border border-white relative z-10 group transition-transform duration-500 hover:scale-105">
                   {profile?.qrCode ? (
-                    <img src={profile.qrCode} alt="Medical Scanner" className="w-48 h-48 rounded-2xl" />
-                  ) : scanUrl ? (
-                    <QRCodeSVG value={scanUrl} size={192} level="H" includeMargin />
+                    <img src={profile.qrCode} alt="Medical Scanner" className="w-48 h-48 rounded-2xl object-contain bg-white" />
                   ) : (
-                    <div className="w-48 h-48 bg-slate-100 animate-pulse rounded-2xl" />
+                    <div className="w-48 h-48 bg-slate-100 animate-pulse rounded-2xl flex items-center justify-center">
+                      <QrCode className="w-12 h-12 text-slate-300" />
+                    </div>
                   )}
                 </div>
                 <p className="mt-6 text-xs font-bold text-slate-500 text-center max-w-[200px] leading-relaxed">
@@ -312,10 +312,12 @@ const QRProfile = () => {
             {/* Right Side: Scan Code */}
             <div className="w-[40%] bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 border-l border-slate-100 p-8 flex flex-col items-center justify-center relative">
               <div className="rounded-[1.75rem] bg-white p-4 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100">
-                {scanUrl ? (
-                  <QRCodeSVG value={scanUrl} size={122} level="H" includeMargin />
+                {profile?.qrCode ? (
+                  <img src={profile.qrCode} alt="Medical Scanner" className="w-[122px] h-[122px] rounded-2xl object-contain bg-white" />
                 ) : (
-                  <div className="h-[122px] w-[122px] animate-pulse rounded-2xl bg-slate-100" />
+                  <div className="h-[122px] w-[122px] animate-pulse rounded-2xl bg-slate-100 flex items-center justify-center">
+                    <QrCode className="w-8 h-8 text-slate-300" />
+                  </div>
                 )}
               </div>
               <div className="mt-5 flex items-center gap-2 rounded-full bg-white/80 px-3 py-2 text-indigo-600 shadow-sm">
