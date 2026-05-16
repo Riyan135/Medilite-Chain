@@ -25,6 +25,7 @@ import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../lib/socket';
 import { downloadPrescriptionPdf } from '../lib/prescription';
+import QRScannerModal from '../components/QRScannerModal';
 
 const emptyPrescription = { medicine: '', quantity: 1, dosage: '', duration: '', instructions: '' };
 
@@ -305,6 +306,7 @@ const DoctorDashboard = () => {
   const [activeChat, setActiveChat] = useState(null);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [savingConsultation, setSavingConsultation] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   const visiblePatients = searchResults.length ? searchResults : [];
 
@@ -436,6 +438,25 @@ const DoctorDashboard = () => {
     });
   };
 
+  const handleScanSuccess = (decodedText) => {
+    try {
+      // Extract ID from URL like /scan/ID
+      if (decodedText.includes('/scan/')) {
+        const id = decodedText.split('/scan/')[1].split('?')[0];
+        if (id) {
+          setShowScanner(false);
+          navigate(`/doctor/patient/${id}`);
+          toast.success('Patient record located');
+        }
+      } else {
+        toast.error('Invalid MediLite QR code');
+      }
+    } catch (error) {
+      console.error('QR Scan Error:', error);
+      toast.error('Failed to parse QR code');
+    }
+  };
+
   return (
     <div className="flex h-screen bg-transparent dark:bg-slate-950 font-sans text-slate-900 dark:text-white transition-colors duration-300 relative overflow-hidden">
       {/* Background Ambience */}
@@ -458,7 +479,15 @@ const DoctorDashboard = () => {
               Welcome back, Dr. {user?.name?.split(' ')[0] || 'User'}. Here is your clinical summary for today.
             </p>
           </div>
-          <div className="relative w-full xl:w-[26rem] group">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowScanner(true)}
+              className="flex items-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-6 py-4 font-black text-slate-700 dark:text-slate-300 shadow-lg shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1 hover:bg-slate-50"
+            >
+              <Stethoscope className="w-5 h-5 mr-3 text-indigo-600" />
+              Scan Patient QR
+            </button>
+            <div className="relative w-full xl:w-[26rem] group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             <input
               type="text"
@@ -696,6 +725,12 @@ const DoctorDashboard = () => {
           onClose={() => setActiveChat(null)}
         />
       )}
+
+      <QRScannerModal 
+        isOpen={showScanner} 
+        onClose={() => setShowScanner(false)} 
+        onScanSuccess={handleScanSuccess} 
+      />
     </div>
   );
 };

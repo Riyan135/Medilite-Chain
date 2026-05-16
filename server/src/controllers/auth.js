@@ -156,6 +156,15 @@ export const login = async (req, res) => {
     }
 
     await markPortalLogin(user);
+
+    if (user.role === 'PATIENT') {
+      const profile = await PatientProfile.findOne({ userId: user._id.toString() });
+      if (profile && !profile.qrCode) {
+        const qrCode = await generatePatientQR(user._id.toString());
+        await PatientProfile.updateOne({ userId: user._id.toString() }, { $set: { qrCode } });
+      }
+    }
+
     const token = buildPortalToken(user);
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
@@ -208,6 +217,15 @@ export const staffLogin = async (req, res) => {
     }
 
     await markPortalLogin(user);
+
+    if (user.role === 'PATIENT') {
+      const profile = await PatientProfile.findOne({ userId: user._id.toString() });
+      if (profile && !profile.qrCode) {
+        const qrCode = await generatePatientQR(user._id.toString());
+        await PatientProfile.updateOne({ userId: user._id.toString() }, { $set: { qrCode } });
+      }
+    }
+
     const token = buildPortalToken(user);
     res.status(200).json({ user: toAuthUser(user), token });
   } catch (error) {
