@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { User, Calendar, FileText, Plus, ArrowLeft, Pill, Activity, ShieldCheck, MessageSquare, BrainCircuit, X, AlertCircle, ExternalLink, Phone, Video } from 'lucide-react';
+import { User, Calendar, FileText, Plus, ArrowLeft, Pill, Activity, ShieldCheck, MessageSquare, BrainCircuit, X, AlertCircle, ExternalLink, Phone, Video, ClipboardPlus } from 'lucide-react';
 import api from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
