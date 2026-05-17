@@ -42,7 +42,7 @@ const DoctorScanner = () => {
       const id = decodedText.split('/scan/')[1].split('?')[0];
       if (id) {
         toast.success('Patient ID Identified');
-        navigate(`/patient/${id}`);
+        navigate(`/patient/${id}?view=consultation`);
       } else {
         toast.error('Invalid QR Code Format');
         setIsScanning(false);
@@ -50,7 +50,7 @@ const DoctorScanner = () => {
     } else if (decodedText.length > 20) {
       // Fallback for raw IDs if they are scanned
       toast.success('Patient ID Detected');
-      navigate(`/patient/${decodedText}`);
+      navigate(`/patient/${decodedText}?view=consultation`);
     } else {
       toast.error('Not a valid MediLite QR Code');
       setIsScanning(false);

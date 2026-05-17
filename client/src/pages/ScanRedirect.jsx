@@ -18,7 +18,8 @@ const ScanRedirect = () => {
     }
 
     if (user.role === 'DOCTOR') {
-      navigate(`/doctor/patient/${id}`);
+      const adminUrl = import.meta.env.VITE_ADMIN_URL || 'https://e-chain-doctor.vercel.app';
+      window.location.href = `${adminUrl}/patient/${id}?view=consultation`;
     } else if (user.role === 'PATIENT') {
       navigate(`/dashboard/${id}`);
     } else {
